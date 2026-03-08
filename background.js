@@ -2,13 +2,41 @@
 
 let activeTabInfo = null;
 
+// Helper function to extract search keywords from popular platforms
+function extractSearchTerm(urlString) {
+  try {
+    const url = new URL(urlString);
+    const hostname = url.hostname;
+
+    // Google Search & Google News
+    if (hostname.includes("google.com") && url.pathname.startsWith("/search")) {
+      return url.searchParams.get("q"); 
+    }
+    // YouTube Search
+    else if (hostname.includes("youtube.com") && url.pathname.startsWith("/results")) {
+      return url.searchParams.get("search_query"); 
+    }
+    // X (Twitter) Search
+    else if (hostname.includes("x.com") || hostname.includes("twitter.com")) {
+      if (url.pathname.startsWith("/search")) {
+        return url.searchParams.get("q"); 
+      }
+    }
+    
+    return null; // Return null if it's not a search results page
+  } catch (error) {
+    return null;
+  }
+}
+
 async function saveActivity() {
   if (!activeTabInfo || !activeTabInfo.startTime) return;
 
   const durationInSeconds = Math.floor((Date.now() - activeTabInfo.startTime) / 1000);
 
   if (durationInSeconds > 0) {
-    console.log(`[SAVED] URL: ${activeTabInfo.url} | Duration: ${durationInSeconds} sec`);
+    const termLog = activeTabInfo.searchTerm ? ` | Search: "${activeTabInfo.searchTerm}"` : "";
+    console.log(`[SAVED] URL: ${activeTabInfo.url} | Duration: ${durationInSeconds} sec${termLog}`);
     // TODO: Replace console.log with chrome.storage.local write in the next phase
   }
 
@@ -21,9 +49,13 @@ async function startTracking(tab) {
 
   await saveActivity();
 
+  // Extract the search term if it exists, otherwise it will be null
+  const extractedTerm = extractSearchTerm(tab.url);
+
   activeTabInfo = {
     url: tab.url,
     title: tab.title,
+    searchTerm: extractedTerm,
     startTime: Date.now()
   };
   

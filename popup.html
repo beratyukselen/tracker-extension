@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chrome Extension UI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jQuery & Select2 -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         
@@ -44,6 +49,32 @@
             height: 16px;
             cursor: pointer;
             accent-color: #1a73e8;
+        }
+
+        /* Select2 Tailwind Integration */
+        .select2-container .select2-selection--single {
+            height: 38px !important;
+            border-color: #d1d5db !important;
+            border-radius: 0.375rem !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px !important;
+            right: 4px !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #1f2937 !important;
+            font-size: 0.875rem !important;
+            padding-left: 0.75rem !important;
+            line-height: normal !important;
+        }
+        .select2-search__field {
+            font-size: 0.875rem !important;
+            outline: none !important;
+        }
+        .select2-results__option {
+            font-size: 0.875rem !important;
         }
     </style>
 </head>
@@ -203,6 +234,18 @@
     </div>
 
     <script>
+        // Init Select2
+        $(document).ready(function() {
+            $('#profileSelect').select2({
+                width: '100%',
+                language: {
+                    noResults: function() {
+                        return "Sonuç bulunamadı";
+                    }
+                }
+            });
+        });
+
         // DOM Elements
         const tabSettingsBtn = document.getElementById('tabSettingsBtn');
         const tabQuickBtn = document.getElementById('tabQuickBtn');

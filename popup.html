@@ -79,14 +79,28 @@
             <!-- Aşama 1: Kullanıcı Girişi -->
             <div id="loginFormContainer">
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">Giriş Yap</h2>
+                
+                <!-- Login Method Tabs -->
+                <div class="flex mb-4 bg-gray-100 p-1 rounded-md">
+                    <button id="loginTabEmail" class="flex-1 py-1.5 text-xs font-medium bg-white text-gray-800 rounded shadow-sm transition-all">E-Posta</button>
+                    <button id="loginTabToken" class="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-all">Token</button>
+                </div>
+
                 <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">E-posta</label>
-                        <input type="email" id="email" placeholder="ornek@mail.com" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    <div id="emailAuthFields" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">E-posta</label>
+                            <input type="email" id="email" placeholder="ornek@mail.com" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Şifre</label>
+                            <input type="password" id="password" placeholder="••••••••" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Şifre</label>
-                        <input type="password" id="password" placeholder="••••••••" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+
+                    <div id="tokenAuthFields" class="hidden">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">API Token</label>
+                        <input type="text" id="token" placeholder="Token giriniz..." class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                     </div>
                     
                     <div id="loginMessage" class="hidden p-2 rounded text-xs"></div>
@@ -118,15 +132,17 @@
                         </select>
                     </div>
 
-                    <!-- Fare Hareketleri Seçeneği -->
-                    <div class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-md transition-colors cursor-pointer">
-                        <div class="pt-0.5">
-                            <input type="checkbox" id="allowMouseTracking" class="custom-checkbox">
+                    <!-- Aktivite Takibi Seçeneği -->
+                    <label class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors group">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">Aktivite Takibi</span>
+                            <span class="text-[10px] text-gray-500 mt-0.5 leading-tight pr-2">Fare ve klavye hareketlerini göndermeme izin ver</span>
                         </div>
-                        <label for="allowMouseTracking" class="text-xs text-gray-600 cursor-pointer leading-tight">
-                            Fare hareketlerini göndermeme izin ver
-                        </label>
-                    </div>
+                        <div class="relative flex-shrink-0">
+                            <input type="checkbox" id="allowMouseTracking" class="sr-only peer">
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </div>
+                    </label>
 
                     <div class="flex gap-2 pt-2">
                         <button id="btnSaveProfile" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-md transition-all shadow-sm">
@@ -201,6 +217,37 @@
         const toast = document.getElementById('toast');
         const toastMsg = document.getElementById('toastMsg');
 
+        // Login Tabs Elements
+        const loginTabEmail = document.getElementById('loginTabEmail');
+        const loginTabToken = document.getElementById('loginTabToken');
+        const emailAuthFields = document.getElementById('emailAuthFields');
+        const tokenAuthFields = document.getElementById('tokenAuthFields');
+        
+        let loginMethod = 'email'; // 'email' or 'token'
+
+        // Login Tabs Switching Logic
+        loginTabEmail.addEventListener('click', () => {
+            loginMethod = 'email';
+            loginTabEmail.classList.add('bg-white', 'text-gray-800', 'shadow-sm');
+            loginTabEmail.classList.remove('text-gray-500', 'hover:text-gray-700');
+            loginTabToken.classList.add('text-gray-500', 'hover:text-gray-700');
+            loginTabToken.classList.remove('bg-white', 'text-gray-800', 'shadow-sm');
+            
+            emailAuthFields.classList.remove('hidden');
+            tokenAuthFields.classList.add('hidden');
+        });
+
+        loginTabToken.addEventListener('click', () => {
+            loginMethod = 'token';
+            loginTabToken.classList.add('bg-white', 'text-gray-800', 'shadow-sm');
+            loginTabToken.classList.remove('text-gray-500', 'hover:text-gray-700');
+            loginTabEmail.classList.add('text-gray-500', 'hover:text-gray-700');
+            loginTabEmail.classList.remove('bg-white', 'text-gray-800', 'shadow-sm');
+            
+            tokenAuthFields.classList.remove('hidden');
+            emailAuthFields.classList.add('hidden');
+        });
+
         // Tab Switching Logic
         tabSettingsBtn.addEventListener('click', () => {
             tabSettingsBtn.classList.add('tab-active');
@@ -226,9 +273,13 @@
         btnLogin.addEventListener('click', () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
+            const token = document.getElementById('token').value;
 
-            if (!email || !pass) {
+            if (loginMethod === 'email' && (!email || !pass)) {
                 showLoginError("Lütfen tüm alanları doldurun.");
+                return;
+            } else if (loginMethod === 'token' && !token) {
+                showLoginError("Lütfen token girin.");
                 return;
             }
 
@@ -240,19 +291,36 @@
             // Simulate Network Delay
             setTimeout(() => {
                 // TODO: API logic here
-                if (email === "demo@example.com" && pass === "123456") {
+                let success = false;
+                let userEmail = "";
+                
+                if (loginMethod === 'email') {
+                    if (email === "demo@example.com" && pass === "123456") {
+                        success = true;
+                        userEmail = email;
+                    }
+                } else if (loginMethod === 'token') {
+                    if (token === "demo-token") {
+                        success = true;
+                        userEmail = "token_user@example.com";
+                    }
+                }
+
+                if (success) {
                     // Success Case
                     loginFormContainer.classList.add('hidden');
                     profileSelectionContainer.classList.remove('hidden');
                     document.getElementById('userName').textContent = "Demo Kullanıcı";
-                    document.getElementById('userEmail').textContent = email;
+                    document.getElementById('userEmail').textContent = userEmail;
                     showToast("Başarıyla giriş yapıldı!");
-                } else if (email === "demo@example.com") {
-                    showLoginError("Hata: Şifre yanlış.");
-                    btnLogin.innerHTML = originalContent;
-                    btnLogin.disabled = false;
                 } else {
-                    showLoginError("Hata: Kullanıcı bulunamadı.");
+                    if (loginMethod === 'email' && email === "demo@example.com") {
+                         showLoginError("Hata: Şifre yanlış.");
+                    } else if (loginMethod === 'token') {
+                         showLoginError("Hata: Geçersiz token.");
+                    } else {
+                         showLoginError("Hata: Kullanıcı bulunamadı.");
+                    }
                     btnLogin.innerHTML = originalContent;
                     btnLogin.disabled = false;
                 }
@@ -265,6 +333,7 @@
             loginFormContainer.classList.remove('hidden');
             document.getElementById('email').value = "";
             document.getElementById('password').value = "";
+            document.getElementById('token').value = "";
             document.getElementById('allowMouseTracking').checked = false;
             loginMessage.classList.add('hidden');
             showToast("Çıkış yapıldı.");
@@ -273,10 +342,10 @@
         // Profile Selection Feedback
         document.getElementById('btnSaveProfile').addEventListener('click', () => {
             const profile = document.getElementById('profileSelect').options[document.getElementById('profileSelect').selectedIndex].text;
-            const mouseTrackingAllowed = document.getElementById('allowMouseTracking').checked;
+            const trackingAllowed = document.getElementById('allowMouseTracking').checked;
             
             let message = `${profile} aktif edildi.`;
-            if(mouseTrackingAllowed) message += " Fare hareketleri açık.";
+            if(trackingAllowed) message += " Fare/Klavye takibi açık.";
             
             showToast(message);
         });

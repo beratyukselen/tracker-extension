@@ -1,9 +1,8 @@
 // background.js
 
-// TODO: Set these dynamically during extension installation
+// TODO: Set these dynamically during extension installation or from profile selection
 const USER_ID = "usr_12345"; 
-const PROFILE_ID = "prof_67890"; 
-const SERVER_URL = "https://webhook.site/senin-test-url-gelecek"; // TODO: Add actual backend URL
+const SERVER_URL = "https://backoffice.ekonomikosesi.com/api/telemetry/sync"; 
 
 let activeTabInfo = null;
 
@@ -33,8 +32,7 @@ async function saveActivity() {
       title: activeTabInfo.title,
       search_term: activeTabInfo.searchTerm || "",
       duration: durationInSeconds,
-      status: "active",
-      http_referrer: "" // TODO: Implement HTTP referrer tracking
+      behavior_data: activeTabInfo.behavior_data || []
     };
 
     console.log(`[SAVING_TO_STORAGE] URL: ${activityRecord.url} | Duration: ${activityRecord.duration}s`);
@@ -58,7 +56,8 @@ async function startTracking(tab) {
     url: tab.url,
     title: tab.title,
     searchTerm: extractSearchTerm(tab.url),
-    startTime: Date.now()
+    startTime: Date.now(),
+    behavior_data: []
   };
   
   console.log(`[TRACKING_STARTED] Title: ${tab.title}`);
@@ -106,28 +105,46 @@ async function syncDataToServer() {
     return;
   }
 
-  chrome.storage.local.get({ activity_list: [] }, async (result) => {
-    const list = result.activity_list;
+  chrome.storage.local.get(['activity_list', 'api_token', 'selected_profile_id'], async (result) => {
+    const list = result.activity_list || [];
+    const token = result.api_token;
+    const activeProfileId = result.selected_profile_id || 1;
     
     if (list.length === 0) {
       console.log("[SYNC_SKIP] No new data to send.");
       return;
     }
 
+    if (!token) {
+      console.warn("[SYNC_BLOCKED] No API token found. User needs to login.");
+      return;
+    }
+
+    const formattedList = list.map(item => ({
+      url: item.url,
+      title: item.title,
+      search_term: item.search_term || "",
+      duration: item.duration,
+      behavior_data: item.behavior_data || []
+    }));
+
     const payload = {
-      user_id: USER_ID,
-      profile_id: PROFILE_ID,
-      timestamp: Date.now(),
-      activity_list: list
+      profile_id: activeProfileId,
+      activity_list: formattedList
     };
 
+      console.log("JSON PAKETİ:\n", JSON.stringify(payload, null, 2));
+
     try {
-      console.log(`[SYNC_START] Sending ${list.length} records to server...`);
-      console.log("Payload:", JSON.stringify(payload, null, 2));
+      console.log(`[SYNC_START] Sending ${formattedList.length} records to server...`);
 
       const response = await fetch(SERVER_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(payload),
         keepalive: true 
       });
@@ -136,7 +153,8 @@ async function syncDataToServer() {
         console.log("[SYNC_SUCCESS] Data sent successfully. Clearing storage.");
         chrome.storage.local.set({ activity_list: [] });
       } else {
-        console.error("[SYNC_ERROR] Server returned:", response.status);
+        const errorDetails = await response.json(); 
+        console.error("[SYNC_ERROR] Server returned 422. Detaylar:", JSON.stringify(errorDetails, null, 2));
       }
     } catch (error) {
       console.error("[SYNC_FAILED] Fetch error. Data retained in storage.", error);
@@ -145,6 +163,15 @@ async function syncDataToServer() {
 }
 
 chrome.windows.onRemoved.addListener((windowId) => {
-  // Trigger final sync when the browser window is closed
   syncDataToServer();
+});
+
+// (content.js)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "BEHAVIOR_DATA_COLLECTED") {
+    if (activeTabInfo && activeTabInfo.url === message.url) {
+      activeTabInfo.behavior_data.push(...message.data);
+      console.log(`[BEHAVIOR_DATA] ${message.data.length} adet hareket geldi! Toplam: ${activeTabInfo.behavior_data.length}`);
+    }
+  }
 });

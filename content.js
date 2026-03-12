@@ -56,6 +56,22 @@ document.addEventListener('scroll', (e) => {
     }
 });
 
+// 4. Klavye Hareketlerini Yakala
+document.addEventListener('keydown', (e) => {
+    if (!isTrackingAllowed) return;
+
+    // Şifre girilen alanlardaki tuşları takip etmiyoruz (Güvenlik/Etik)
+    if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'password') {
+        return; 
+    }
+
+    behaviorData.push({
+        type: "key_press",
+        key: e.key, // Hangi tuşa basıldığını alıyoruz
+        t: Date.now()
+    });
+});
+
 function sendDataToBackground() {
     if (behaviorData.length > 0) {
         chrome.runtime.sendMessage({

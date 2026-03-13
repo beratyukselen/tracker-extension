@@ -239,6 +239,7 @@ function hideToast() {
 
 // Eklenti ilk açıldığında hafızayı kontrol et ve arayüzü geri yükle
 document.addEventListener('DOMContentLoaded', () => {
+    fetchClientIP();
     chrome.storage.local.get(['api_token', 'user_email', 'selected_profile_id', 'allow_tracking'], (result) => {
         if (result.api_token) {
             loginFormContainer.classList.add('hidden');
@@ -257,3 +258,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// sunucudan IP bilgisini çeken fonksiyon
+async function fetchClientIP() {
+    try {
+        const response = await fetch("https://backoffice.ekonomikosesi.com/api/ip", {
+            method: "GET",
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            // API'den dönen cevaba göre IP'yi HTML'e yazdırıyoruz
+            const ipAddress = data.ip || data.client_ip || data; 
+            document.getElementById('clientIp').textContent = ipAddress;
+            console.log("IP Başarıyla Çekildi:", ipAddress);
+        } else {
+            document.getElementById('clientIp').textContent = "Bulunamadı";
+        }
+    } catch (error) {
+        console.error("IP çekilirken hata:", error);
+        document.getElementById('clientIp').textContent = "Bağlantı Hatası";
+    }
+}

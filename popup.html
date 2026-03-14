@@ -3,19 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chrome Extension UI</title>
+    <title>CleanSheet Assistant Pro</title>
     <link href="tailwind.css" rel="stylesheet">
     
-    <!-- jQuery & Select2 -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         
         body {
             font-family: 'Inter', sans-serif;
-            width: 350px; /* Chrome pop-up standart genişliği */
+            width: 350px;
             height: auto;
             margin: 0;
             background-color: #f8f9fa;
@@ -43,47 +39,18 @@
 
         .hidden { display: none; }
 
-        /* Custom Checkbox Styling */
         .custom-checkbox {
             width: 16px;
             height: 16px;
             cursor: pointer;
             accent-color: #1a73e8;
         }
-
-        /* Select2 Tailwind Integration */
-        .select2-container .select2-selection--single {
-            height: 38px !important;
-            border-color: #d1d5db !important;
-            border-radius: 0.375rem !important;
-            display: flex !important;
-            align-items: center !important;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 36px !important;
-            right: 4px !important;
-        }
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            color: #1f2937 !important;
-            font-size: 0.875rem !important;
-            padding-left: 0.75rem !important;
-            line-height: normal !important;
-        }
-        .select2-search__field {
-            font-size: 0.875rem !important;
-            outline: none !important;
-        }
-        .select2-results__option {
-            font-size: 0.875rem !important;
-        }
     </style>
 </head>
 <body class="text-gray-800">
 
-    <!-- Header -->
     <div class="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
         <div class="flex items-center gap-2">
-            <!-- Google Colors Placeholder Logo -->
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.5 12.3c0-.8-.1-1.5-.2-2.2H12v4.3h5.9c-.3 1.4-1 2.5-2.2 3.3v2.7h3.5c2.1-2 3.3-4.8 3.3-8.1z" fill="#4285F4"/>
                 <path d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.7H2.2v2.8C4.1 20.6 7.8 23 12 23z" fill="#34A853"/>
@@ -95,23 +62,18 @@
         <span class="text-[10px] text-gray-400 font-medium">v1.0.0</span>
     </div>
 
-    <!-- Tabs Navigation -->
     <div class="flex bg-white border-b border-gray-200">
         <button id="tabQuickBtn" class="flex-1 py-3 text-sm font-medium transition-all text-gray-500 hover:text-gray-700">Hızlı Kullanım</button>
         <button id="tabSettingsBtn" class="flex-1 py-3 text-sm font-medium transition-all tab-active">Ayarlar</button>
     </div>
 
-    <!-- Tab Content Container -->
     <div class="p-4 min-h-[320px]">
         
-        <!-- SECTION: AYARLAR -->
         <div id="sectionSettings" class="">
             
-            <!-- Aşama 1: Kullanıcı Girişi -->
             <div id="loginFormContainer">
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">Giriş Yap</h2>
                 
-                <!-- Login Method Tabs -->
                 <div class="flex mb-4 bg-gray-100 p-1 rounded-md">
                     <button id="loginTabEmail" class="flex-1 py-1.5 text-xs font-medium bg-white text-gray-800 rounded shadow-sm transition-all">E-Posta</button>
                     <button id="loginTabToken" class="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-all">Token</button>
@@ -142,7 +104,6 @@
                 </div>
             </div>
 
-            <!-- Aşama 2: Profil Seçimi (Girişten Sonra) -->
             <div id="profileSelectionContainer" class="hidden">
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">Profil ve Tercihler</h2>
                 <div class="space-y-4">
@@ -157,13 +118,15 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Profil:</label>
                         <select id="profileSelect" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none bg-white">
-                            <option value="1">SEO Analiz Profili</option>
-                            <option value="2">Backlink Takip</option>
-                            <option value="3">İçerik Editörü</option>
                         </select>
+                        
+                        <div id="profileDetailsContainer" class="hidden mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100 text-sm text-indigo-800 transition-all">
+                            <div class="font-semibold mb-1 text-indigo-900">Profil Detayları</div>
+                             <div class="text-xs">Platform: <span id="profilePlatform" class="font-medium">...</span></div>
+                             <div class="text-xs">Kullanıcı: <span id="profileUsername" class="font-medium">...</span></div>
+                        </div>
                     </div>
 
-                    <!-- Aktivite Takibi Seçeneği -->
                     <label class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors group">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">Aktivite Takibi</span>
@@ -183,15 +146,11 @@
                             Çıkış
                         </button>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-gray-200 text-center text-xs text-gray-400">
-                        Sistem IP: <span id="clientIp" class="font-medium text-gray-500">Sorgulanıyor...</span>
-                    </div>
                 </div>
             </div>
 
         </div>
 
-        <!-- SECTION: HIZLI KULLANIM -->
         <div id="sectionQuickUse" class="hidden">
             <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">Hızlı Erişim</h2>
             <div class="grid grid-cols-1 gap-3">
@@ -230,7 +189,6 @@
         </div>
     </div>
 
-    <!-- Feedback Toast -->
     <div id="toast" class="fixed bottom-4 left-4 right-4 bg-gray-900 text-white text-xs py-2 px-3 rounded shadow-lg transform translate-y-20 transition-transform duration-300 flex items-center justify-between">
         <span id="toastMsg">İşlem başarılı</span>
         <button onclick="hideToast()" class="text-gray-400 hover:text-white">✕</button>

@@ -1,6 +1,5 @@
 // popup.js
 
-// DOM Elements
 const tabSettingsBtn = document.getElementById('tabSettingsBtn');
 const tabQuickBtn = document.getElementById('tabQuickBtn');
 const sectionSettings = document.getElementById('sectionSettings');
@@ -15,7 +14,6 @@ const toast = document.getElementById('toast');
 const toastMsg = document.getElementById('toastMsg');
 const profileSelect = document.getElementById('profileSelect');
 
-// Login Tabs Elements
 const loginTabEmail = document.getElementById('loginTabEmail');
 const loginTabToken = document.getElementById('loginTabToken');
 const emailAuthFields = document.getElementById('emailAuthFields');
@@ -23,7 +21,7 @@ const tokenAuthFields = document.getElementById('tokenAuthFields');
 
 let loginMethod = 'email'; 
 
-// Login Tabs Switching Logic
+// Tab and View Switching Logic
 loginTabEmail.addEventListener('click', () => {
     loginMethod = 'email';
     loginTabEmail.classList.add('bg-white', 'text-gray-800', 'shadow-sm');
@@ -46,7 +44,6 @@ loginTabToken.addEventListener('click', () => {
     emailAuthFields.classList.add('hidden');
 });
 
-// Tab Switching Logic
 tabSettingsBtn.addEventListener('click', () => {
     tabSettingsBtn.classList.add('tab-active');
     tabSettingsBtn.classList.remove('text-gray-500');
@@ -67,7 +64,7 @@ tabQuickBtn.addEventListener('click', () => {
     sectionSettings.classList.add('hidden');
 });
 
-// YENİ FONKSİYON: API'den Gerçek Profilleri Çekme
+// API Calls and Data Handling
 async function loadProfiles(token) {
     try {
         const response = await fetch('https://backoffice.ekonomikosesi.com/api/profiles', {
@@ -87,18 +84,52 @@ async function loadProfiles(token) {
             profiles.forEach(p => {
                 const option = document.createElement('option');
                 option.value = p.id;
-                option.textContent = p.name || `Profil ${p.id}`; 
+                option.textContent = p.full_name || `Profil ${p.id}`; 
                 profileSelect.appendChild(option);
             });
-        } else {
-            console.error("Profiller çekilemedi:", response.status);
         }
     } catch (error) {
-        console.error("Profilleri çekerken hata oluştu:", error);
+        console.error("Failed to fetch profiles:", error);
     }
 }
 
-// Login
+async function fetchProfileDetails(profileId) {
+    chrome.storage.local.get(['api_token'], async (result) => {
+        const token = result.api_token;
+        if (!token) return;
+
+        const detailsContainer = document.getElementById('profileDetailsContainer');
+        const platformSpan = document.getElementById('profilePlatform');
+        const usernameSpan = document.getElementById('profileUsername');
+
+        if (!detailsContainer) return;
+
+        detailsContainer.classList.remove('hidden');
+        platformSpan.textContent = "Yükleniyor...";
+        usernameSpan.textContent = "Yükleniyor...";
+
+        try {
+            const response = await fetch(`https://backoffice.ekonomikosesi.com/api/profiles/${profileId}`, {
+                method: "GET",
+                headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const responseData = await response.json();
+                const profileData = responseData.data || responseData;
+                
+                platformSpan.parentElement.innerHTML = `Durum: <span id="profilePlatform" class="font-medium">${profileData.status || "Belirtilmemiş"}</span>`;
+                usernameSpan.parentElement.innerHTML = `Kullanıcı: <span id="profileUsername" class="font-medium italic text-gray-500">Hesaplar yüklenmedi</span>`;
+            } else {
+                detailsContainer.classList.add('hidden');
+            }
+        } catch (error) {
+            detailsContainer.classList.add('hidden');
+        }
+    });
+}
+
+// Event Listeners
 btnLogin.addEventListener('click', async () => {
     const email = document.getElementById('email').value;
     const pass = document.getElementById('password').value;
@@ -155,7 +186,6 @@ btnLogin.addEventListener('click', async () => {
                 document.getElementById('userEmail').textContent = userEmail;
                 
                 await loadProfiles(finalToken);
-                
                 showToast("Başarıyla giriş yapıldı!");
             });
         }
@@ -167,20 +197,19 @@ btnLogin.addEventListener('click', async () => {
     }
 });
 
-// Logout
 btnLogout.addEventListener('click', () => {
     chrome.storage.local.get(['api_token'], async (result) => {
         if (result.api_token) {
-            // Sunucuya da çıkış yaptığımızı haber veriyoruz
             try {
                 await fetch('https://backoffice.ekonomikosesi.com/api/logout', {
                     method: 'POST',
                     headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${result.api_token}` }
                 });
-            } catch (e) { console.error("Logout API Hatası", e); }
+            } catch (error) { 
+                console.error("Logout error:", error); 
+            }
         }
         
-        // Kasayı temizle ve arayüzü başa döndür
         chrome.storage.local.remove(['api_token', 'user_email', 'selected_profile_id'], () => {
             profileSelectionContainer.classList.add('hidden');
             loginFormContainer.classList.remove('hidden');
@@ -194,14 +223,12 @@ btnLogout.addEventListener('click', () => {
     });
 });
 
-// Profile Selection Feedback
 document.getElementById('btnSaveProfile').addEventListener('click', () => {
     const selectEl = document.getElementById('profileSelect');
     const profileId = selectEl.value;
     const profileName = selectEl.options[selectEl.selectedIndex].text;
-    const trackingAllowed = document.getElementById('allowMouseTracking').checked; // Checkbox durumu
+    const trackingAllowed = document.getElementById('allowMouseTracking').checked;
     
-    // Hem ID'yi hem de Takip iznini kasaya (storage) atıyoruz
     chrome.storage.local.set({ 
         selected_profile_id: parseInt(profileId),
         allow_tracking: trackingAllowed 
@@ -212,7 +239,6 @@ document.getElementById('btnSaveProfile').addEventListener('click', () => {
     });
 });
 
-// Quick Actions Feedback
 document.querySelectorAll('.quick-action-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         const action = this.querySelector('.text-sm').textContent;
@@ -220,7 +246,30 @@ document.querySelectorAll('.quick-action-btn').forEach(btn => {
     });
 });
 
-// Helper Functions
+document.getElementById('profileSelect').addEventListener('change', (e) => {
+    fetchProfileDetails(e.target.value);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    chrome.storage.local.get(['api_token', 'user_email', 'selected_profile_id', 'allow_tracking'], (result) => {
+        if (result.api_token) {
+            loginFormContainer.classList.add('hidden');
+            profileSelectionContainer.classList.remove('hidden');
+            document.getElementById('userEmail').textContent = result.user_email || "Aktif Kullanıcı";
+            
+            document.getElementById('allowMouseTracking').checked = result.allow_tracking || false;
+            
+            loadProfiles(result.api_token).then(() => {
+                if (result.selected_profile_id) {
+                    profileSelect.value = result.selected_profile_id;
+                    fetchProfileDetails(result.selected_profile_id); 
+                }
+            });
+        }
+    });
+});
+
+// Utility Functions
 function showLoginError(msg) {
     loginMessage.textContent = msg;
     loginMessage.classList.remove('hidden', 'bg-green-100', 'text-green-700');
@@ -235,52 +284,4 @@ function showToast(msg) {
 
 function hideToast() {
     toast.classList.add('translate-y-20');
-}
-
-// Eklenti ilk açıldığında hafızayı kontrol et ve arayüzü geri yükle
-document.addEventListener('DOMContentLoaded', () => {
-    fetchClientIP();
-    chrome.storage.local.get(['api_token', 'user_email', 'selected_profile_id', 'allow_tracking'], (result) => {
-        if (result.api_token) {
-            loginFormContainer.classList.add('hidden');
-            profileSelectionContainer.classList.remove('hidden');
-            document.getElementById('userEmail').textContent = result.user_email || "Aktif Kullanıcı";
-            
-            // Checkbox durumunu geri yükle (yoksa false gelsin)
-            document.getElementById('allowMouseTracking').checked = result.allow_tracking || false;
-            
-            // Profilleri çek ve çekme işlemi bitince seçili olanı işaretle
-            loadProfiles(result.api_token).then(() => {
-                if (result.selected_profile_id) {
-                    profileSelect.value = result.selected_profile_id;
-                }
-            });
-        }
-    });
-});
-
-// sunucudan IP bilgisini çeken fonksiyon
-async function fetchClientIP() {
-    try {
-        const response = await fetch("https://backoffice.ekonomikosesi.com/api/ip", {
-            method: "GET",
-            headers: {
-                "Accept": "application/json",
-                "Content-Type": "application/json"
-            }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            // API'den dönen cevaba göre IP'yi HTML'e yazdırıyoruz
-            const ipAddress = data.ip || data.client_ip || data; 
-            document.getElementById('clientIp').textContent = ipAddress;
-            console.log("IP Başarıyla Çekildi:", ipAddress);
-        } else {
-            document.getElementById('clientIp').textContent = "Bulunamadı";
-        }
-    } catch (error) {
-        console.error("IP çekilirken hata:", error);
-        document.getElementById('clientIp').textContent = "Bağlantı Hatası";
-    }
 }

@@ -45,6 +45,13 @@
             cursor: pointer;
             accent-color: #1a73e8;
         }
+
+        #allowMouseTracking:checked + div {
+            background-color: #2563eb !important;
+        }
+        #allowMouseTracking:checked + div::after {
+            transform: translateX(100%) !important;
+        }
     </style>
 </head>
 <body class="text-gray-800">

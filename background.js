@@ -1,11 +1,10 @@
 // background.js
 
-// TODO: Set these dynamically during extension installation or from profile selection
-const USER_ID = "usr_12345"; 
 const SERVER_URL = "https://backoffice.ekonomikosesi.com/api/telemetry/sync"; 
 
 let activeTabInfo = null;
 
+// Search Term Extraction Engine
 function extractSearchTerm(urlString) {
   try {
     const url = new URL(urlString);
@@ -14,13 +13,18 @@ function extractSearchTerm(urlString) {
     if (hostname.includes("google.com") && url.pathname.startsWith("/search")) return url.searchParams.get("q"); 
     else if (hostname.includes("youtube.com") && url.pathname.startsWith("/results")) return url.searchParams.get("search_query"); 
     else if ((hostname.includes("x.com") || hostname.includes("twitter.com")) && url.pathname.startsWith("/search")) return url.searchParams.get("q"); 
-    
+    else if (hostname.includes("instagram.com") && url.pathname.startsWith("/explore/tags/")) return url.pathname.split('/')[3];
+    else if (hostname.includes("linkedin.com") && url.pathname.startsWith("/search/results/")) return url.searchParams.get("keywords");
+    else if (hostname.includes("tiktok.com") && url.pathname.startsWith("/search")) return url.searchParams.get("q");
+    else if (hostname.includes("eksisozluk.com") && url.searchParams.has("q")) return url.searchParams.get("q");
+
     return null;
   } catch (error) {
     return null;
   }
 }
 
+// Activity Data Management
 async function saveActivity() {
   if (!activeTabInfo || !activeTabInfo.startTime) return;
 
@@ -35,7 +39,7 @@ async function saveActivity() {
       behavior_data: activeTabInfo.behavior_data || []
     };
 
-    console.log(`[SAVING_TO_STORAGE] URL: ${activityRecord.url} | Duration: ${activityRecord.duration}s`);
+    console.log(`[STORAGE] Saving activity: ${activityRecord.url} | ${activityRecord.duration}s`);
     
     chrome.storage.local.get({ activity_list: [] }, (result) => {
       const updatedList = result.activity_list;
@@ -60,15 +64,16 @@ async function startTracking(tab) {
     behavior_data: []
   };
   
-  console.log(`[TRACKING_STARTED] Title: ${tab.title}`);
+  console.log(`[TRACKING] Started for: ${tab.title}`);
 }
 
+// Tab and Window Event Listeners
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
     startTracking(tab);
   } catch (error) {
-    console.error("Failed to get tab info:", error);
+    console.error("[ERROR] Failed to retrieve tab info:", error);
   }
 });
 
@@ -81,18 +86,22 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.idle.setDetectionInterval(60);
 chrome.idle.onStateChanged.addListener((newState) => {
   if (newState === 'idle' || newState === 'locked') {
-    console.log("[AFK] Inactivity detected. Saving session.");
+    console.log("[SYSTEM] Inactivity detected. Saving current session.");
     saveActivity();
   } else if (newState === 'active') {
-    console.log("[ACTIVE] User returned. Resuming.");
+    console.log("[SYSTEM] User active. Resuming tracking.");
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs.length > 0) startTracking(tabs[0]);
     });
   }
 });
 
-chrome.alarms.create("syncDataAlarm", { periodInMinutes: 2 });
+chrome.windows.onRemoved.addListener(() => {
+  syncDataToServer();
+});
 
+// Telemetry Sync Engine
+chrome.alarms.create("syncDataAlarm", { periodInMinutes: 2 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "syncDataAlarm") {
     syncDataToServer();
@@ -101,7 +110,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 async function syncDataToServer() {
   if (!navigator.onLine) {
-    console.log("[SYNC_BLOCKED] Offline mode. Data remains in storage.");
+    console.warn("[SYNC] Offline mode. Data retained in local storage.");
     return;
   }
 
@@ -110,13 +119,10 @@ async function syncDataToServer() {
     const token = result.api_token;
     const activeProfileId = result.selected_profile_id || 1;
     
-    if (list.length === 0) {
-      console.log("[SYNC_SKIP] No new data to send.");
-      return;
-    }
+    if (list.length === 0) return;
 
     if (!token) {
-      console.warn("[SYNC_BLOCKED] No API token found. User needs to login.");
+      console.warn("[SYNC] Missing API token. Sync aborted.");
       return;
     }
 
@@ -133,10 +139,8 @@ async function syncDataToServer() {
       activity_list: formattedList
     };
 
-      console.log("JSON PAKETİ:\n", JSON.stringify(payload, null, 2));
-
     try {
-      console.log(`[SYNC_START] Sending ${formattedList.length} records to server...`);
+      console.log(`[SYNC] Dispatching ${formattedList.length} records to server.`);
 
       const response = await fetch(SERVER_URL, {
         method: "POST",
@@ -145,33 +149,28 @@ async function syncDataToServer() {
           "Accept": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(payload),
-        keepalive: true 
+        body: JSON.stringify(payload)
       });
 
       if (response.ok || response.type === 'opaque') {
-        console.log("[SYNC_SUCCESS] Data sent successfully. Clearing storage.");
+        console.log("[SYNC] Data successfully synced. Purging local storage.");
         chrome.storage.local.set({ activity_list: [] });
       } else {
         const errorDetails = await response.json(); 
-        console.error("[SYNC_ERROR] Server returned 422. Detaylar:", JSON.stringify(errorDetails, null, 2));
+        console.error("[SYNC] Server rejected payload:", errorDetails);
       }
     } catch (error) {
-      console.error("[SYNC_FAILED] Fetch error. Data retained in storage.", error);
+      console.error("[SYNC] Network failure during sync:", error);
     }
   });
 }
 
-chrome.windows.onRemoved.addListener((windowId) => {
-  syncDataToServer();
-});
-
-// (content.js)
+// Inter-script Communication
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "BEHAVIOR_DATA_COLLECTED") {
     if (activeTabInfo && activeTabInfo.url === message.url) {
       activeTabInfo.behavior_data.push(...message.data);
-      console.log(`[BEHAVIOR_DATA] ${message.data.length} adet hareket geldi! Toplam: ${activeTabInfo.behavior_data.length}`);
+      console.log(`[BEHAVIOR] Received ${message.data.length} events. Total: ${activeTabInfo.behavior_data.length}`);
     }
   }
 });

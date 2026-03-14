@@ -15,6 +15,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     }
 });
 
+// Event Listeners for Behavior Tracking
 document.addEventListener('mousemove', (e) => {
     if (!isTrackingAllowed) return;
 
@@ -56,22 +57,22 @@ document.addEventListener('scroll', (e) => {
     }
 });
 
-// 4. Klavye Hareketlerini Yakala
 document.addEventListener('keydown', (e) => {
     if (!isTrackingAllowed) return;
 
-    // Şifre girilen alanlardaki tuşları takip etmiyoruz (Güvenlik/Etik)
+    // Exclude password fields for security
     if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'password') {
         return; 
     }
 
     behaviorData.push({
         type: "key_press",
-        key: e.key, // Hangi tuşa basıldığını alıyoruz
+        key: e.key,
         t: Date.now()
     });
 });
 
+// Data Synchronization
 function sendDataToBackground() {
     if (behaviorData.length > 0) {
         chrome.runtime.sendMessage({
@@ -85,5 +86,4 @@ function sendDataToBackground() {
 }
 
 setInterval(sendDataToBackground, 3000);
-
 window.addEventListener('beforeunload', sendDataToBackground);

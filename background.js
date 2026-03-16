@@ -1,12 +1,10 @@
 // background.js
 
-// TODO: Set these dynamically during extension installation
-const USER_ID = "usr_12345"; 
-const PROFILE_ID = "prof_67890"; 
-const SERVER_URL = "https://webhook.site/senin-test-url-gelecek"; // TODO: Add actual backend URL
+const SERVER_URL = "https://backoffice.ekonomikosesi.com/api/telemetry/sync"; 
 
 let activeTabInfo = null;
 
+// Search Term Extraction Engine
 function extractSearchTerm(urlString) {
   try {
     const url = new URL(urlString);
@@ -15,13 +13,18 @@ function extractSearchTerm(urlString) {
     if (hostname.includes("google.com") && url.pathname.startsWith("/search")) return url.searchParams.get("q"); 
     else if (hostname.includes("youtube.com") && url.pathname.startsWith("/results")) return url.searchParams.get("search_query"); 
     else if ((hostname.includes("x.com") || hostname.includes("twitter.com")) && url.pathname.startsWith("/search")) return url.searchParams.get("q"); 
-    
+    else if (hostname.includes("instagram.com") && url.pathname.startsWith("/explore/tags/")) return url.pathname.split('/')[3];
+    else if (hostname.includes("linkedin.com") && url.pathname.startsWith("/search/results/")) return url.searchParams.get("keywords");
+    else if (hostname.includes("tiktok.com") && url.pathname.startsWith("/search")) return url.searchParams.get("q");
+    else if (hostname.includes("eksisozluk.com") && url.searchParams.has("q")) return url.searchParams.get("q");
+
     return null;
   } catch (error) {
     return null;
   }
 }
 
+// Activity Data Management
 async function saveActivity() {
   if (!activeTabInfo || !activeTabInfo.startTime) return;
 
@@ -33,11 +36,10 @@ async function saveActivity() {
       title: activeTabInfo.title,
       search_term: activeTabInfo.searchTerm || "",
       duration: durationInSeconds,
-      status: "active",
-      http_referrer: "" // TODO: Implement HTTP referrer tracking
+      behavior_data: activeTabInfo.behavior_data || []
     };
 
-    console.log(`[SAVING_TO_STORAGE] URL: ${activityRecord.url} | Duration: ${activityRecord.duration}s`);
+    console.log(`[STORAGE] Saving activity: ${activityRecord.url} | ${activityRecord.duration}s`);
     
     chrome.storage.local.get({ activity_list: [] }, (result) => {
       const updatedList = result.activity_list;
@@ -58,18 +60,20 @@ async function startTracking(tab) {
     url: tab.url,
     title: tab.title,
     searchTerm: extractSearchTerm(tab.url),
-    startTime: Date.now()
+    startTime: Date.now(),
+    behavior_data: []
   };
   
-  console.log(`[TRACKING_STARTED] Title: ${tab.title}`);
+  console.log(`[TRACKING] Started for: ${tab.title}`);
 }
 
+// Tab and Window Event Listeners
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
     startTracking(tab);
   } catch (error) {
-    console.error("Failed to get tab info:", error);
+    console.error("[ERROR] Failed to retrieve tab info:", error);
   }
 });
 
@@ -82,18 +86,22 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.idle.setDetectionInterval(60);
 chrome.idle.onStateChanged.addListener((newState) => {
   if (newState === 'idle' || newState === 'locked') {
-    console.log("[AFK] Inactivity detected. Saving session.");
+    console.log("[SYSTEM] Inactivity detected. Saving current session.");
     saveActivity();
   } else if (newState === 'active') {
-    console.log("[ACTIVE] User returned. Resuming.");
+    console.log("[SYSTEM] User active. Resuming tracking.");
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs.length > 0) startTracking(tabs[0]);
     });
   }
 });
 
-chrome.alarms.create("syncDataAlarm", { periodInMinutes: 2 });
+chrome.windows.onRemoved.addListener(() => {
+  syncDataToServer();
+});
 
+// Telemetry Sync Engine
+chrome.alarms.create("syncDataAlarm", { periodInMinutes: 2 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "syncDataAlarm") {
     syncDataToServer();
@@ -102,49 +110,67 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 async function syncDataToServer() {
   if (!navigator.onLine) {
-    console.log("[SYNC_BLOCKED] Offline mode. Data remains in storage.");
+    console.warn("[SYNC] Offline mode. Data retained in local storage.");
     return;
   }
 
-  chrome.storage.local.get({ activity_list: [] }, async (result) => {
-    const list = result.activity_list;
+  chrome.storage.local.get(['activity_list', 'api_token', 'selected_profile_id'], async (result) => {
+    const list = result.activity_list || [];
+    const token = result.api_token;
+    const activeProfileId = result.selected_profile_id || 1;
     
-    if (list.length === 0) {
-      console.log("[SYNC_SKIP] No new data to send.");
+    if (list.length === 0) return;
+
+    if (!token) {
+      console.warn("[SYNC] Missing API token. Sync aborted.");
       return;
     }
 
+    const formattedList = list.map(item => ({
+      url: item.url,
+      title: item.title,
+      search_term: item.search_term || "",
+      duration: item.duration,
+      behavior_data: item.behavior_data || []
+    }));
+
     const payload = {
-      user_id: USER_ID,
-      profile_id: PROFILE_ID,
-      timestamp: Date.now(),
-      activity_list: list
+      profile_id: activeProfileId,
+      activity_list: formattedList
     };
 
     try {
-      console.log(`[SYNC_START] Sending ${list.length} records to server...`);
-      console.log("Payload:", JSON.stringify(payload, null, 2));
+      console.log(`[SYNC] Dispatching ${formattedList.length} records to server.`);
 
       const response = await fetch(SERVER_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        keepalive: true 
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
       });
 
       if (response.ok || response.type === 'opaque') {
-        console.log("[SYNC_SUCCESS] Data sent successfully. Clearing storage.");
+        console.log("[SYNC] Data successfully synced. Purging local storage.");
         chrome.storage.local.set({ activity_list: [] });
       } else {
-        console.error("[SYNC_ERROR] Server returned:", response.status);
+        const errorDetails = await response.json(); 
+        console.error("[SYNC] Server rejected payload:", errorDetails);
       }
     } catch (error) {
-      console.error("[SYNC_FAILED] Fetch error. Data retained in storage.", error);
+      console.error("[SYNC] Network failure during sync:", error);
     }
   });
 }
 
-chrome.windows.onRemoved.addListener((windowId) => {
-  // Trigger final sync when the browser window is closed
-  syncDataToServer();
+// Inter-script Communication
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "BEHAVIOR_DATA_COLLECTED") {
+    if (activeTabInfo && activeTabInfo.url === message.url) {
+      activeTabInfo.behavior_data.push(...message.data);
+      console.log(`[BEHAVIOR] Received ${message.data.length} events. Total: ${activeTabInfo.behavior_data.length}`);
+    }
+  }
 });

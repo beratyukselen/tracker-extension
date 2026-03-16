@@ -1,0 +1,319 @@
+{
+  "info": {
+    "_postman_id": "d70d2b8c-5f41-4d01-b960-44c341285f0b",
+    "name": "CleanSheet Backoffice API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "28143745"
+  },
+  "item": [
+    {
+      "name": "User Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/login?email=berat.yukselen@cleansheetglobal.com&password=123",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "login"
+          ],
+          "query": [
+            {
+              "key": "email",
+              "value": "berat.yukselen@cleansheetglobal.com"
+            },
+            {
+              "key": "password",
+              "value": "123"
+            }
+          ]
+        },
+        "description": "Eklentinin veya istemcinin sisteme giriş yaparak bir **Bearer Token** (Erişim Anahtarı) aldığı uç noktadır. Bu token, diğer tüm API isteklerinde `Authorization: Bearer {token}` başlığı (header) altında gönderilmelidir. Geçersiz bilgilerde `422 Unprocessable Entity` döner ve örnek bir payload (`sample_payload`) gösterilir."
+      },
+      "response": []
+    },
+    {
+      "name": "User Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/logout",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "logout"
+          ]
+        },
+        "description": "Kullanıcının mevcut oturumunu sonlandırır ve veritabanındaki aktif Bearer Token'ı siler. İptal işleminden sonra bu token ile API üzerinde işlem yapılamaz."
+      },
+      "response": []
+    },
+    {
+      "name": "Current User Details",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/me",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "me"
+          ]
+        },
+        "description": "Giriş yapmış olan kullanıcının temel bilgilerini ve sahip olduğu API yetkilerini (permissions) bir dizi halinde döndürür. Eklenti (extension), ilk girişte bu endpoint'i çağırarak kullanıcının hangi menülere/işlemlere (\"telemetry sync\", \"profiles list\") erişebileceğine karar verip arayüzünü (UI) buna göre şekillendirmelidir."
+      },
+      "response": []
+    },
+    {
+      "name": "Sync Telemetry Data",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/telemetry/sync",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "telemetry",
+            "sync"
+          ]
+        },
+        "description": "Kullanıcının belirli bir profile (profile_id) bağlı olarak tarayıcı üzerinde gerçekleştirdiği aktiviteleri toplu (bulk) olarak sunucuya iletir. Performans için veriler dizi (activity_list) olarak gönderilmelidir. Gönderilmesi gereken her nesne; ziyaret edilen URL, sayfa başlığı, kalma süresi (sn) ve sayfa içindeki mouse/scroll davranış koordinatlarını (behavior_data JSON olarak) içermelidir."
+      },
+      "response": []
+    },
+    {
+      "name": "Telemetry Data",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/telemetry",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "telemetry"
+          ]
+        },
+        "description": "Kullanıcının belirli bir profile (profile_id) bağlı olarak tarayıcı üzerinde gerçekleştirdiği aktiviteleri toplu (bulk) olarak sunucuya iletir. Performans için veriler dizi (activity_list) olarak gönderilmelidir. Gönderilmesi gereken her nesne; ziyaret edilen URL, sayfa başlığı, kalma süresi (sn) ve sayfa içindeki mouse/scroll davranış koordinatlarını (behavior_data JSON olarak) içermelidir."
+      },
+      "response": []
+    },
+    {
+      "name": "List All Profiles",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/profiles",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "profiles"
+          ]
+        },
+        "description": "Sistemde kayıtlı olan tüm 'persona' (suni/gerçek hesap) profillerini liste halinde döndürür. Yanıt içerisinde, o profile ait olan Twitter, Instagram gibi bağlı sosyal medya hesapları da social_accounts ilişkisi (relation) üzerinden otomatik olarak gelir."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Profile Details",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/profiles/:id?with=schedule",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "profiles",
+            ":id"
+          ],
+          "query": [
+            {
+              "key": "with",
+              "value": "schedule",
+              "type": "text"
+            }
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1"
+            }
+          ]
+        },
+        "description": "Sistemde kayıtlı olan tüm 'persona' (suni/gerçek hesap) profillerini liste halinde döndürür. Yanıt içerisinde, o profile ait olan Twitter, Instagram gibi bağlı sosyal medya hesapları da social_accounts ilişkisi (relation) üzerinden otomatik olarak gelir."
+      },
+      "response": []
+    },
+    {
+      "name": "Check Client IP",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/ip",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "ip"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://backoffice.ekonomikosesi.com"
+    },
+    {
+      "key": "TOKEN",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}

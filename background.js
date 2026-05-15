@@ -127,9 +127,9 @@ async function syncDataToServer() {
     }
 
     const formattedList = list.map(item => ({
-      url: item.url,
-      title: item.title,
-      search_term: item.search_term || "",
+      url: item.url ? item.url.substring(0, 1000) : "",
+      title: item.title ? item.title.substring(0, 250) : "",
+      search_term: item.search_term ? item.search_term.substring(0, 250) : "",
       duration: item.duration,
       behavior_data: item.behavior_data || []
     }));

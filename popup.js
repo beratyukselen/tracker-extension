@@ -316,6 +316,7 @@ btnLogin.addEventListener('click', async () => {
                 loginFormContainer.classList.add('hidden');
                 profileSelectionContainer.classList.remove('hidden');
                 tabOperationBtn.classList.remove('hidden');
+                tabInfoBtn.classList.remove('hidden');
                 document.getElementById('userName').textContent = userName;
                 document.getElementById('userEmail').textContent = userEmail;
                 
@@ -349,6 +350,7 @@ btnLogout.addEventListener('click', () => {
             profileSelectionContainer.classList.add('hidden');
             loginFormContainer.classList.remove('hidden');
             tabOperationBtn.classList.add('hidden');
+            tabInfoBtn.classList.add('hidden');
             
             // Ayarlar tabına geri dön
             tabSettingsBtn.click();
@@ -436,6 +438,14 @@ document.getElementById('btnOpenBackoffice').addEventListener('click', () => {
     });
 });
 
+document.getElementById('btnArchiveOrg').addEventListener('click', () => {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        if (tabs[0] && tabs[0].url) {
+            window.open(`https://web.archive.org/web/*/${tabs[0].url}`, '_blank');
+        }
+    });
+});
+
 document.getElementById('profileSelect').addEventListener('change', (e) => {
     fetchProfileDetails(e.target.value);
 });
@@ -446,6 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loginFormContainer.classList.add('hidden');
             profileSelectionContainer.classList.remove('hidden');
             tabOperationBtn.classList.remove('hidden');
+            tabInfoBtn.classList.remove('hidden');
             document.getElementById('userEmail').textContent = result.user_email || "Aktif Kullanıcı";
             
             document.getElementById('allowMouseTracking').checked = result.allow_tracking || false;
@@ -628,6 +639,16 @@ function renderOperationDay(dayStr) {
             badge.innerHTML = htmlStr;
             operationRoutinesContainer.appendChild(badge);
         });
+        
+        // Setup Alarm
+        const todayIndex = new Date().getDay();
+        const curDayIndex = days.indexOf(dayStr);
+        if (curDayIndex === todayIndex && currentScheduleData.time_slot && currentScheduleData.time_slot.includes('-')) {
+            chrome.runtime.sendMessage({
+                action: "SETUP_ROUTINE_ALARMS",
+                time_slot: currentScheduleData.time_slot
+            });
+        }
     }
 
     // Tomorrow routines logic

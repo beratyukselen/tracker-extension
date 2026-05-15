@@ -134,33 +134,49 @@ async function syncDataToServer() {
       behavior_data: item.behavior_data || []
     }));
 
-    const payload = {
-      profile_id: activeProfileId,
-      activity_list: formattedList
-    };
+    console.log(`[SYNC] Dispatching ${formattedList.length} records to server.`);
+    const CHUNK_SIZE = 50;
+    let syncSuccessCount = 0;
 
-    try {
-      console.log(`[SYNC] Dispatching ${formattedList.length} records to server.`);
+    for (let i = 0; i < formattedList.length; i += CHUNK_SIZE) {
+      const chunk = formattedList.slice(i, i + CHUNK_SIZE);
+      const payload = {
+        profile_id: activeProfileId,
+        activity_list: chunk
+      };
 
-      const response = await fetch(SERVER_URL, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      try {
+        const response = await fetch(SERVER_URL, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
 
-      if (response.ok || response.type === 'opaque') {
-        console.log("[SYNC] Data successfully synced. Purging local storage.");
-        chrome.storage.local.set({ activity_list: [] });
-      } else {
-        const errorDetails = await response.json(); 
-        console.error("[SYNC] Server rejected payload:", errorDetails);
+        if (response.ok || response.type === 'opaque') {
+          syncSuccessCount += chunk.length;
+        } else {
+          const errorDetails = await response.json(); 
+          console.error("[SYNC] Server rejected payload chunk:", errorDetails);
+          break; // Stop syncing further chunks on server error
+        }
+      } catch (error) {
+        console.error("[SYNC] Network failure during sync:", error);
+        break; // Stop syncing on network error
       }
-    } catch (error) {
-      console.error("[SYNC] Network failure during sync:", error);
+    }
+
+    if (syncSuccessCount > 0) {
+      // Re-fetch the list to ensure we don't overwrite new activities added during the await period
+      chrome.storage.local.get({ activity_list: [] }, (res) => {
+        const currentList = res.activity_list;
+        currentList.splice(0, syncSuccessCount);
+        chrome.storage.local.set({ activity_list: currentList });
+        console.log(`[SYNC] Data successfully synced. Removed ${syncSuccessCount} items from storage.`);
+      });
     }
   });
 }

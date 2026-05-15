@@ -1,3 +1,5 @@
+const MOUSE_MOVE_DELAY = 500;
+
 let behaviorData = [];
 let lastMouseMoveTime = 0;
 let lastScrollTime = 0;
@@ -23,7 +25,7 @@ document.addEventListener('mousemove', (e) => {
     }
 
     const now = Date.now();
-    if (now - lastMouseMoveTime > 100) {
+    if (now - lastMouseMoveTime > MOUSE_MOVE_DELAY) {
         behaviorData.push({
             type: "mouse_move",
             x: e.clientX,

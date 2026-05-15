@@ -229,12 +229,23 @@ async function fetchProfileDetails(profileId) {
                         const iconColorClass = isActive ? "text-green-500" : "text-red-500";
                         
                         const item = document.createElement('div');
-                        item.className = `flex items-center gap-1.5 px-2 py-1 rounded shadow-sm border ${colorClass}`;
+                        item.className = `flex items-center gap-1.5 px-2 py-1 rounded shadow-sm border ${colorClass} cursor-pointer hover:opacity-80 transition-opacity`;
                         item.innerHTML = `
                             <div class="${iconColorClass} flex-shrink-0">${getIcon(platName)}</div>
                             <div class="capitalize font-medium text-[10px] tracking-wide">${platName}</div>
                         `;
-                        item.setAttribute('title', `${acc.username || 'Bilinmiyor'} (${isActive ? 'Aktif' : 'Pasif'})`);
+                        item.setAttribute('title', `${acc.username || 'Bilinmiyor'} (${isActive ? 'Aktif' : 'Pasif'})\nTıklayarak kopyala`);
+                        
+                        item.addEventListener('click', () => {
+                            if (acc.username) {
+                                navigator.clipboard.writeText(acc.username).then(() => {
+                                    showToast(`${platName} adresi kopyalandı!`);
+                                });
+                            } else {
+                                showToast(`${platName} adresi bulunamadı.`);
+                            }
+                        });
+                        
                         elSocialAccounts.appendChild(item);
                     });
                 }
@@ -584,6 +595,12 @@ function renderOperationDay(dayStr) {
     const elTomorrowRoutines = document.getElementById('profileTomorrowRoutines');
     const elTodayLabel = document.getElementById('todayLabel');
     const tomorrowDayLabel = document.getElementById('tomorrowDayLabel');
+    const descContainer = document.getElementById('activeRoutineDescContainer');
+    
+    if (descContainer) {
+        descContainer.classList.add('hidden');
+        descContainer.dataset.activeRoutine = "";
+    }
     
     if (!currentScheduleData) {
         operationRoutinesContainer.innerHTML = '<span class="text-[10px] text-red-500 italic bg-white px-2 py-1 rounded border border-red-100">Program bulunamadı</span>';
@@ -620,8 +637,7 @@ function renderOperationDay(dayStr) {
             const desc = routineDescriptions[routineBase] || 'Belirtilen aksiyon veya platform işlemi.';
 
             const badge = document.createElement('div');
-            badge.className = "group relative flex items-center cursor-help";
-            badge.title = desc; // Fallback native tooltip
+            badge.className = "relative flex items-center cursor-pointer hover:opacity-90 transition-opacity";
             
             let htmlStr = `<div class="flex items-center bg-indigo-600 text-white text-xs font-semibold rounded shadow-sm border border-indigo-700 overflow-hidden">
                 <span class="px-2 py-1">${routineBase}</span>`;
@@ -630,13 +646,24 @@ function renderOperationDay(dayStr) {
                 htmlStr += `<span class="px-1.5 py-1 bg-indigo-800 text-[10px] text-indigo-100 border-l border-indigo-700/50">${duration}</span>`;
             }
             
-            htmlStr += `</div>
-                <div class="absolute top-[calc(100%+6px)] left-0 w-[180px] bg-gray-900 text-white text-[10px] rounded px-2 py-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[999] text-left whitespace-normal leading-tight shadow-xl">
-                    <div class="font-bold text-indigo-300 mb-0.5">${routineBase}</div>
-                    ${desc}
-                </div>`;
+            htmlStr += `</div>`;
                 
             badge.innerHTML = htmlStr;
+            
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const descContainer = document.getElementById('activeRoutineDescContainer');
+                
+                if (!descContainer.classList.contains('hidden') && descContainer.dataset.activeRoutine === routineBase) {
+                    descContainer.classList.add('hidden');
+                    descContainer.dataset.activeRoutine = "";
+                } else {
+                    descContainer.innerHTML = `<div class="font-bold text-indigo-300 mb-0.5">${routineBase}</div>${desc}`;
+                    descContainer.classList.remove('hidden');
+                    descContainer.dataset.activeRoutine = routineBase;
+                }
+            });
+
             operationRoutinesContainer.appendChild(badge);
         });
     }
@@ -672,4 +699,13 @@ document.querySelectorAll('.accordion-btn').forEach(btn => {
             icon.classList.add('-rotate-180');
         }
     });
+});
+
+// Close routine descriptions when clicking outside
+document.addEventListener('click', () => {
+    const descContainer = document.getElementById('activeRoutineDescContainer');
+    if (descContainer) {
+        descContainer.classList.add('hidden');
+        descContainer.dataset.activeRoutine = "";
+    }
 });

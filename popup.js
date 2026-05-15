@@ -639,16 +639,6 @@ function renderOperationDay(dayStr) {
             badge.innerHTML = htmlStr;
             operationRoutinesContainer.appendChild(badge);
         });
-        
-        // Setup Alarm
-        const todayIndex = new Date().getDay();
-        const curDayIndex = days.indexOf(dayStr);
-        if (curDayIndex === todayIndex && currentScheduleData.time_slot && currentScheduleData.time_slot.includes('-')) {
-            chrome.runtime.sendMessage({
-                action: "SETUP_ROUTINE_ALARMS",
-                time_slot: currentScheduleData.time_slot
-            });
-        }
     }
 
     // Tomorrow routines logic

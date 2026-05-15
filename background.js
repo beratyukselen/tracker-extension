@@ -105,14 +105,6 @@ chrome.alarms.create("syncDataAlarm", { periodInMinutes: 2 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "syncDataAlarm") {
     syncDataToServer();
-  } else if (alarm.name === "routine_end_warning") {
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-      title: "Mesai Bitişi Yaklaşıyor",
-      message: "Operasyon çizelgenizdeki sürenin son 15 dakikasına girdiniz.",
-      priority: 2
-    });
   }
 });
 
@@ -179,25 +171,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (activeTabInfo && activeTabInfo.url === message.url) {
       activeTabInfo.behavior_data.push(...message.data);
       console.log(`[BEHAVIOR] Received ${message.data.length} events. Total: ${activeTabInfo.behavior_data.length}`);
-    }
-  } else if (message.action === "SETUP_ROUTINE_ALARMS") {
-    const timeSlot = message.time_slot;
-    if (timeSlot) {
-      const parts = timeSlot.split('-');
-      if (parts.length === 2) {
-        const endStr = parts[1].trim();
-        const [hours, minutes] = endStr.split(':').map(Number);
-        
-        const targetTime = new Date();
-        targetTime.setHours(hours, minutes, 0, 0);
-        
-        const alarmTime = targetTime.getTime() - (15 * 60 * 1000); // 15 mins before
-        
-        if (alarmTime > Date.now()) {
-          chrome.alarms.create("routine_end_warning", { when: alarmTime });
-          console.log(`[ALARM] Set for ${new Date(alarmTime).toLocaleTimeString()}`);
-        }
-      }
     }
   }
 });

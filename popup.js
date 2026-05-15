@@ -457,6 +457,69 @@ document.getElementById('btnArchiveOrg').addEventListener('click', () => {
     });
 });
 
+document.getElementById('btnQuickAudit').addEventListener('click', () => {
+    const btn = document.getElementById('btnQuickAudit');
+    const container = document.getElementById('auditResultsContainer');
+    const content = document.getElementById('auditResultsContent');
+    
+    // Yükleniyor durumu
+    content.innerHTML = '<div class="text-center text-gray-400 py-2 italic">Sayfa analiz ediliyor...</div>';
+    container.classList.remove('hidden');
+    
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        if (tabs[0] && tabs[0].id) {
+            chrome.tabs.sendMessage(tabs[0].id, { action: "QUICK_AUDIT" }, function(response) {
+                if (chrome.runtime.lastError) {
+                    content.innerHTML = `<div class="text-red-500">Hata: Sayfa analiz edilemedi. Sayfanın tamamen yüklendiğinden emin olun.</div>`;
+                    return;
+                }
+                
+                if (response && response.success) {
+                    const data = response.data;
+                    
+                    // Basit durum değerlendirmeleri
+                    const titleColor = (data.titleLength > 10 && data.titleLength < 70) ? 'text-green-600' : 'text-orange-500';
+                    const h1Color = data.h1 !== 'Yok' ? 'text-green-600' : 'text-red-500';
+                    const descColor = (data.metaDescLength > 50 && data.metaDescLength < 160) ? 'text-green-600' : (data.metaDescLength > 0 ? 'text-orange-500' : 'text-red-500');
+                    
+                    content.innerHTML = `
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500">Title:</span>
+                            <span class="font-medium text-right max-w-[200px] truncate" title="${data.title}">${data.title} <span class="${titleColor}">(${data.titleLength} krkt)</span></span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500">H1 Tag:</span>
+                            <span class="font-medium text-right max-w-[200px] truncate ${h1Color}" title="${data.h1}">${data.h1}</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500">Kelime Sayısı:</span>
+                            <span class="font-medium">${data.wordCount} kelime</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500">Meta Desc:</span>
+                            <span class="font-medium ${descColor}">${data.metaDescLength > 0 ? data.metaDescLength + ' karakter' : 'Yok'}</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                            <span class="text-gray-500">Yayın Tarihi:</span>
+                            <span class="font-medium ${data.publishedDate !== 'Bulunamadı' ? 'text-blue-600' : ''}">${data.publishedDate}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Güncelleme (Mod):</span>
+                            <span class="font-medium ${data.modifiedDate !== 'Bulunamadı' ? 'text-blue-600' : ''}">${data.modifiedDate}</span>
+                        </div>
+                    `;
+                } else {
+                    content.innerHTML = `<div class="text-red-500">Veri okunamadı.</div>`;
+                }
+            });
+        }
+    });
+});
+
+document.getElementById('btnCloseAudit').addEventListener('click', () => {
+    document.getElementById('auditResultsContainer').classList.add('hidden');
+});
+
 document.getElementById('profileSelect').addEventListener('change', (e) => {
     fetchProfileDetails(e.target.value);
 });

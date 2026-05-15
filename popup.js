@@ -2,8 +2,13 @@
 
 const tabSettingsBtn = document.getElementById('tabSettingsBtn');
 const tabQuickBtn = document.getElementById('tabQuickBtn');
+const tabOperationBtn = document.getElementById('tabOperationBtn');
+const tabInfoBtn = document.getElementById('tabInfoBtn');
+
 const sectionSettings = document.getElementById('sectionSettings');
 const sectionQuickUse = document.getElementById('sectionQuickUse');
+const sectionOperation = document.getElementById('sectionOperation');
+const sectionInfo = document.getElementById('sectionInfo');
 
 const loginFormContainer = document.getElementById('loginFormContainer');
 const profileSelectionContainer = document.getElementById('profileSelectionContainer');
@@ -18,6 +23,12 @@ const loginTabEmail = document.getElementById('loginTabEmail');
 const loginTabToken = document.getElementById('loginTabToken');
 const emailAuthFields = document.getElementById('emailAuthFields');
 const tokenAuthFields = document.getElementById('tokenAuthFields');
+
+const operationNotSelectedMsg = document.getElementById('operationNotSelectedMsg');
+const operationContentContainer = document.getElementById('operationContentContainer');
+const operationDaySelect = document.getElementById('operationDaySelect');
+const operationTimeSlot = document.getElementById('operationTimeSlot');
+const operationRoutinesContainer = document.getElementById('operationRoutinesContainer');
 
 let loginMethod = 'email'; 
 
@@ -49,9 +60,15 @@ tabSettingsBtn.addEventListener('click', () => {
     tabSettingsBtn.classList.remove('text-gray-500');
     tabQuickBtn.classList.remove('tab-active');
     tabQuickBtn.classList.add('text-gray-500');
+    tabOperationBtn.classList.remove('tab-active');
+    tabOperationBtn.classList.add('text-gray-500');
+    tabInfoBtn.classList.remove('text-blue-600', 'bg-blue-50');
+    tabInfoBtn.classList.add('text-gray-500');
     
     sectionSettings.classList.remove('hidden');
     sectionQuickUse.classList.add('hidden');
+    sectionOperation.classList.add('hidden');
+    sectionInfo.classList.add('hidden');
 });
 
 tabQuickBtn.addEventListener('click', () => {
@@ -59,9 +76,50 @@ tabQuickBtn.addEventListener('click', () => {
     tabQuickBtn.classList.remove('text-gray-500');
     tabSettingsBtn.classList.remove('tab-active');
     tabSettingsBtn.classList.add('text-gray-500');
+    tabOperationBtn.classList.remove('tab-active');
+    tabOperationBtn.classList.add('text-gray-500');
+    tabInfoBtn.classList.remove('text-blue-600', 'bg-blue-50');
+    tabInfoBtn.classList.add('text-gray-500');
     
     sectionQuickUse.classList.remove('hidden');
     sectionSettings.classList.add('hidden');
+    sectionOperation.classList.add('hidden');
+    sectionInfo.classList.add('hidden');
+});
+
+tabOperationBtn.addEventListener('click', () => {
+    tabOperationBtn.classList.add('tab-active');
+    tabOperationBtn.classList.remove('text-gray-500');
+    tabSettingsBtn.classList.remove('tab-active');
+    tabSettingsBtn.classList.add('text-gray-500');
+    tabQuickBtn.classList.remove('tab-active');
+    tabQuickBtn.classList.add('text-gray-500');
+    tabInfoBtn.classList.remove('text-blue-600', 'bg-blue-50');
+    tabInfoBtn.classList.add('text-gray-500');
+    
+    sectionOperation.classList.remove('hidden');
+    sectionSettings.classList.add('hidden');
+    sectionQuickUse.classList.add('hidden');
+    sectionInfo.classList.add('hidden');
+    
+    loadOperationSchedule();
+});
+
+tabInfoBtn.addEventListener('click', () => {
+    tabInfoBtn.classList.add('text-blue-600', 'bg-blue-50');
+    tabInfoBtn.classList.remove('text-gray-500');
+    
+    tabOperationBtn.classList.remove('tab-active');
+    tabOperationBtn.classList.add('text-gray-500');
+    tabSettingsBtn.classList.remove('tab-active');
+    tabSettingsBtn.classList.add('text-gray-500');
+    tabQuickBtn.classList.remove('tab-active');
+    tabQuickBtn.classList.add('text-gray-500');
+    
+    sectionInfo.classList.remove('hidden');
+    sectionOperation.classList.add('hidden');
+    sectionSettings.classList.add('hidden');
+    sectionQuickUse.classList.add('hidden');
 });
 
 // API Calls and Data Handling
@@ -107,7 +165,6 @@ async function fetchProfileDetails(profileId) {
         const elGroupNote = document.getElementById('profileGroupNote');
         const elSocialAccounts = document.getElementById('profileSocialAccounts');
         const elTimeSlot = document.getElementById('profileTimeSlot');
-        const elTodayRoutines = document.getElementById('profileTodayRoutines');
         const elTomorrowRoutines = document.getElementById('profileTomorrowRoutines');
         const elTodayLabel = document.getElementById('todayLabel');
 
@@ -121,7 +178,6 @@ async function fetchProfileDetails(profileId) {
         elGroupNote.textContent = "...";
         elSocialAccounts.innerHTML = `<span class="text-indigo-400 italic text-[10px]">Yükleniyor...</span>`;
         elTimeSlot.textContent = "--:-- - --:--";
-        elTodayRoutines.innerHTML = "";
         elTomorrowRoutines.textContent = "...";
 
         try {
@@ -169,63 +225,32 @@ async function fetchProfileDetails(profileId) {
                         const sStatus = (acc.status || "").toLowerCase();
                         const isActive = sStatus === 'active' || sStatus === 'aktif';
                         
-                        const colorClass = isActive ? "text-indigo-700 bg-white border-indigo-200" : "text-gray-500 bg-gray-50 border-gray-200 opacity-80";
-                        const iconColorClass = isActive ? "text-indigo-500" : "text-gray-400";
-                        const statusDot = isActive ? `<span class="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></span><span class="text-[9px] font-medium text-green-700 pt-[0.5px]">Aktif</span>` : `<span class="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></span><span class="text-[9px] font-medium text-red-600 pt-[0.5px]">Pasif</span>`;
+                        const colorClass = isActive ? "text-green-700 bg-green-50 border-green-200" : "text-red-600 bg-red-50 border-red-200";
+                        const iconColorClass = isActive ? "text-green-500" : "text-red-500";
                         
                         const item = document.createElement('div');
                         item.className = `flex items-center gap-1.5 px-2 py-1 rounded shadow-sm border ${colorClass}`;
                         item.innerHTML = `
                             <div class="${iconColorClass} flex-shrink-0">${getIcon(platName)}</div>
                             <div class="capitalize font-medium text-[10px] tracking-wide">${platName}</div>
-                            <div class="flex items-center gap-1 border-l pl-1.5 ml-0.5" style="border-color: inherit">${statusDot}</div>
                         `;
-                        item.setAttribute('title', acc.username || '');
+                        item.setAttribute('title', `${acc.username || 'Bilinmiyor'} (${isActive ? 'Aktif' : 'Pasif'})`);
                         elSocialAccounts.appendChild(item);
                     });
                 }
 
-                // Schedule
-                const schedule = profileData.schedule;
-                if (!schedule) {
-                    elTimeSlot.textContent = "Belirtilmemiş";
-                    elTodayRoutines.innerHTML = `<span class="text-[10px] text-indigo-400/80 italic bg-white px-2 py-1 rounded shadow-sm border border-indigo-100">Program bulunamadı</span>`;
-                    elTomorrowRoutines.textContent = "Yok";
-                } else {
-                    elTimeSlot.textContent = schedule.time_slot || "--:-- - --:--";
-                    
+                // Setup global schedule data and render it
+                currentScheduleData = profileData.schedule || null;
+                
+                if (!operationDaySelect.dataset.initialized) {
                     const istanbulTimeStr = new Date().toLocaleString("en-US", {timeZone: "Europe/Istanbul"});
-                    const istanbulTime = new Date(istanbulTimeStr);
-                    const dayOfWeek = istanbulTime.getDay();
-                    
+                    const dayOfWeek = new Date(istanbulTimeStr).getDay();
                     const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-                    const trDays = { sunday: "Pazar", monday: "Pazartesi", tuesday: "Salı", wednesday: "Çarşamba", thursday: "Perşembe", friday: "Cuma", saturday: "Cumartesi" };
-                    
-                    const todayStr = days[dayOfWeek];
-                    const tomorrowStr = days[(dayOfWeek + 1) % 7];
-                    
-                    elTodayLabel.innerHTML = `<span class="text-indigo-500 font-bold">${trDays[todayStr]}</span> Rutini`;
-
-                    const todayRoutines = schedule[`${todayStr}_routines`] || [];
-                    const tomorrowRoutines = schedule[`${tomorrowStr}_routines`] || [];
-                    
-                    if (todayRoutines.length === 0) {
-                        elTodayRoutines.innerHTML = `<span class="text-[10px] text-indigo-400/80 italic bg-white px-2 py-1 rounded shadow-sm border border-indigo-100">Bugün için rutin yok</span>`;
-                    } else {
-                        todayRoutines.forEach(r => {
-                            const badge = document.createElement('span');
-                            badge.className = "px-1.5 py-0.5 bg-indigo-600 text-white text-[10px] font-medium rounded shadow-sm border border-indigo-700/50 whitespace-nowrap";
-                            badge.textContent = r;
-                            elTodayRoutines.appendChild(badge);
-                        });
-                    }
-                    
-                    if (tomorrowRoutines.length === 0) {
-                        elTomorrowRoutines.textContent = "Rutin yok";
-                    } else {
-                        elTomorrowRoutines.textContent = tomorrowRoutines.join(", ");
-                    }
+                    operationDaySelect.value = days[dayOfWeek];
+                    operationDaySelect.dataset.initialized = 'true';
                 }
+                
+                renderOperationDay(operationDaySelect.value);
 
             } else {
                 detailsContainer.classList.add('hidden');
@@ -290,10 +315,12 @@ btnLogin.addEventListener('click', async () => {
             chrome.storage.local.set({ api_token: finalToken, user_email: userEmail }, async () => {
                 loginFormContainer.classList.add('hidden');
                 profileSelectionContainer.classList.remove('hidden');
+                tabOperationBtn.classList.remove('hidden');
                 document.getElementById('userName').textContent = userName;
                 document.getElementById('userEmail').textContent = userEmail;
                 
                 await loadProfiles(finalToken);
+                loadInfoData(finalToken); // Also load info data
                 showToast("Başarıyla giriş yapıldı!");
             });
         }
@@ -321,6 +348,11 @@ btnLogout.addEventListener('click', () => {
         chrome.storage.local.remove(['api_token', 'user_email', 'selected_profile_id'], () => {
             profileSelectionContainer.classList.add('hidden');
             loginFormContainer.classList.remove('hidden');
+            tabOperationBtn.classList.add('hidden');
+            
+            // Ayarlar tabına geri dön
+            tabSettingsBtn.click();
+
             document.getElementById('email').value = "";
             document.getElementById('password').value = "";
             document.getElementById('token').value = "";
@@ -413,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.api_token) {
             loginFormContainer.classList.add('hidden');
             profileSelectionContainer.classList.remove('hidden');
+            tabOperationBtn.classList.remove('hidden');
             document.getElementById('userEmail').textContent = result.user_email || "Aktif Kullanıcı";
             
             document.getElementById('allowMouseTracking').checked = result.allow_tracking || false;
@@ -423,6 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fetchProfileDetails(result.selected_profile_id); 
                 }
             });
+            loadInfoData(result.api_token); // Load Info Data
         }
     });
 });
@@ -443,3 +477,188 @@ function showToast(msg) {
 function hideToast() {
     toast.classList.add('translate-y-20');
 }
+
+let currentScheduleData = null;
+
+async function loadOperationSchedule() {
+    chrome.storage.local.get(['api_token', 'selected_profile_id'], async (result) => {
+        if (!result.selected_profile_id || !result.api_token) {
+            operationNotSelectedMsg.classList.remove('hidden');
+            operationContentContainer.classList.add('hidden');
+            return;
+        }
+
+        operationNotSelectedMsg.classList.add('hidden');
+        operationContentContainer.classList.remove('hidden');
+        
+        if (!operationDaySelect.dataset.initialized) {
+            const istanbulTimeStr = new Date().toLocaleString("en-US", {timeZone: "Europe/Istanbul"});
+            const dayOfWeek = new Date(istanbulTimeStr).getDay();
+            const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+            operationDaySelect.value = days[dayOfWeek];
+            operationDaySelect.dataset.initialized = 'true';
+        }
+        
+        if (currentScheduleData) {
+            renderOperationDay(operationDaySelect.value);
+        } else {
+            // Profil datası henüz yüklenmediyse tekrar fetchProfileDetails ile tetikle.
+            fetchProfileDetails(result.selected_profile_id);
+        }
+    });
+}
+
+let routineDescriptions = {};
+
+async function loadInfoData(token) {
+    try {
+        const headers = { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` };
+        
+        const [routinesRes, actionsRes] = await Promise.all([
+            fetch('https://backoffice.ekonomikosesi.com/api/routines?per_page=100', { headers }),
+            fetch('https://backoffice.ekonomikosesi.com/api/action-codes?per_page=100', { headers })
+        ]);
+
+        const routinesData = routinesRes.ok ? await routinesRes.json() : { data: [] };
+        const actionsData = actionsRes.ok ? await actionsRes.json() : { data: [] };
+
+        const rList = document.getElementById('routineList');
+        const aList = document.getElementById('actionCodeList');
+        
+        if(rList) rList.innerHTML = '';
+        if(aList) aList.innerHTML = '';
+
+        const routines = Array.isArray(routinesData.data) ? routinesData.data : [];
+        const actions = Array.isArray(actionsData.data) ? actionsData.data : [];
+
+        if (routines.length === 0 && rList) {
+            rList.innerHTML = '<div class="text-indigo-400 italic px-1">Rutin bulunamadı.</div>';
+        } else if (rList) {
+            routines.forEach(r => {
+                routineDescriptions[r.name] = r.process || 'Belirtilmemiş';
+                const div = document.createElement('div');
+                div.className = "py-1 px-2";
+                div.innerHTML = `<strong class="text-indigo-900 font-semibold px-1 bg-indigo-100 rounded">${r.name}:</strong> ${r.platform ? `<span class="text-gray-500">[${r.platform}]</span> ` : ''}${r.process || ''}`;
+                rList.appendChild(div);
+            });
+        }
+
+        if (actions.length === 0 && aList) {
+            aList.innerHTML = '<div class="text-indigo-400 italic px-1">Aksiyon kodu bulunamadı.</div>';
+        } else if (aList) {
+            actions.forEach(a => {
+                routineDescriptions[a.code] = a.summary || a.purpose || 'Belirtilmemiş';
+                const div = document.createElement('div');
+                div.className = "py-1 px-2";
+                div.innerHTML = `<strong class="text-indigo-900 font-semibold px-1 bg-indigo-100 rounded">${a.code}:</strong> ${a.name ? `<span class="text-gray-500">[${a.name}]</span> ` : ''}${a.summary || a.purpose || ''}`;
+                aList.appendChild(div);
+            });
+        }
+        
+        // Re-render tooltips now that descriptions are loaded
+        if (currentScheduleData && !sectionOperation.classList.contains('hidden')) {
+            renderOperationDay(operationDaySelect.value);
+        }
+    } catch (error) {
+        console.error("Failed to load info data:", error);
+        const rList = document.getElementById('routineList');
+        const aList = document.getElementById('actionCodeList');
+        if(rList) rList.innerHTML = '<li class="text-red-500 italic">Veri yüklenemedi.</li>';
+        if(aList) aList.innerHTML = '<li class="text-red-500 italic">Veri yüklenemedi.</li>';
+    }
+}
+
+function renderOperationDay(dayStr) {
+    const elTimeSlot = document.getElementById('profileTimeSlot');
+    const elTomorrowRoutines = document.getElementById('profileTomorrowRoutines');
+    const elTodayLabel = document.getElementById('todayLabel');
+    const tomorrowDayLabel = document.getElementById('tomorrowDayLabel');
+    
+    if (!currentScheduleData) {
+        operationRoutinesContainer.innerHTML = '<span class="text-[10px] text-red-500 italic bg-white px-2 py-1 rounded border border-red-100">Program bulunamadı</span>';
+        elTimeSlot.textContent = "Belirtilmemiş";
+        elTomorrowRoutines.textContent = "Yok";
+        return;
+    }
+    
+    elTimeSlot.textContent = currentScheduleData.time_slot || "--:-- - --:--";
+    operationRoutinesContainer.innerHTML = "";
+    
+    // Set Day Label
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const trDays = { sunday: "Pazar", monday: "Pazartesi", tuesday: "Salı", wednesday: "Çarşamba", thursday: "Perşembe", friday: "Cuma", saturday: "Cumartesi" };
+    
+    elTodayLabel.innerHTML = `<span class="text-indigo-500 font-bold">${trDays[dayStr]}</span> RUTİNİ`;
+
+    // Try fetching with _routines suffix or directly (API support both forms)
+    const routines = currentScheduleData[`${dayStr}_routines`] || currentScheduleData[dayStr] || [];
+    
+    if (routines.length === 0) {
+        operationRoutinesContainer.innerHTML = '<span class="text-[10px] text-indigo-400/80 italic bg-white px-2 py-1 rounded shadow-sm border border-indigo-100">Bu gün için rutin yok</span>';
+    } else {
+        routines.forEach(r => {
+            let rText = typeof r === 'string' ? r : (r.name || 'Bilinmeyen Rutin');
+            let routineBase = rText;
+            let duration = "";
+            const match = rText.match(/(.*?)\[(.*?)\]/);
+            if (match) {
+                routineBase = match[1].trim();
+                duration = match[2].trim();
+            }
+            
+            const desc = routineDescriptions[routineBase] || 'Belirtilen aksiyon veya platform işlemi.';
+
+            const badge = document.createElement('div');
+            badge.className = "group relative flex items-center cursor-help";
+            badge.title = desc; // Fallback native tooltip
+            
+            let htmlStr = `<div class="flex items-center bg-indigo-600 text-white text-xs font-semibold rounded shadow-sm border border-indigo-700 overflow-hidden">
+                <span class="px-2 py-1">${routineBase}</span>`;
+            
+            if (duration) {
+                htmlStr += `<span class="px-1.5 py-1 bg-indigo-800 text-[10px] text-indigo-100 border-l border-indigo-700/50">${duration}</span>`;
+            }
+            
+            htmlStr += `</div>
+                <div class="absolute top-[calc(100%+6px)] left-0 w-[180px] bg-gray-900 text-white text-[10px] rounded px-2 py-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[999] text-left whitespace-normal leading-tight shadow-xl">
+                    <div class="font-bold text-indigo-300 mb-0.5">${routineBase}</div>
+                    ${desc}
+                </div>`;
+                
+            badge.innerHTML = htmlStr;
+            operationRoutinesContainer.appendChild(badge);
+        });
+    }
+
+    // Tomorrow routines logic
+    const currentDayIndex = days.indexOf(dayStr);
+    const tomorrowStr = days[(currentDayIndex + 1) % 7];
+    tomorrowDayLabel.textContent = `${trDays[tomorrowStr]}:`;
+    
+    const tomorrowRoutines = currentScheduleData[`${tomorrowStr}_routines`] || currentScheduleData[tomorrowStr] || [];
+    
+    if (tomorrowRoutines.length === 0) {
+        elTomorrowRoutines.textContent = "Rutin yok";
+    } else {
+        const tNames = tomorrowRoutines.map(r => typeof r === 'string' ? r : (r.name || '')).filter(r => r !== '');
+        elTomorrowRoutines.textContent = tNames.join(", ");
+    }
+}
+
+operationDaySelect.addEventListener('change', (e) => {
+    renderOperationDay(e.target.value);
+});
+
+// Accordion Logic for Info Tab
+document.querySelectorAll('.accordion-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const content = btn.nextElementSibling;
+        const icon = btn.querySelector('svg');
+        content.classList.toggle('hidden');
+        if (content.classList.contains('hidden')) {
+            icon.classList.remove('-rotate-180');
+        } else {
+            icon.classList.add('-rotate-180');
+        }
+    });
+});

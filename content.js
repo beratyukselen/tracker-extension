@@ -239,6 +239,57 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     if (modMeta) modifiedDate = new Date(modMeta.getAttribute('content')).toLocaleString('tr-TR');
                 }
 
+                // URL & Canonical Analizi
+                const urlLength = window.location.href.length;
+                const canonicalTag = document.querySelector('link[rel="canonical"]');
+                const canonicalUrl = canonicalTag ? canonicalTag.href : null;
+                const isCanonicalMatch = canonicalUrl ? window.location.href.split('?')[0] === canonicalUrl.split('?')[0] : false;
+
+                // Sosyal Medya Etiketleri
+                const hasOgTitle = !!document.querySelector('meta[property="og:title"]');
+                const hasOgImage = !!document.querySelector('meta[property="og:image"]');
+                const hasTwitterCard = !!(document.querySelector('meta[name="twitter:card"]') || document.querySelector('meta[property="twitter:card"]'));
+
+                // Link Analizi (İçerik içi)
+                let internalLinks = 0;
+                let externalLinks = 0;
+                let nofollowLinks = 0;
+                let dofollowLinks = 0;
+                if (contentElement) {
+                    const links = contentElement.querySelectorAll('a');
+                    links.forEach(a => {
+                        if (!a.href || a.href.startsWith('javascript:')) return;
+                        if (a.hostname === host) {
+                            internalLinks++;
+                        } else {
+                            externalLinks++;
+                            if (a.rel && a.rel.toLowerCase().includes('nofollow')) {
+                                nofollowLinks++;
+                            } else {
+                                dofollowLinks++;
+                            }
+                        }
+                    });
+                }
+
+                // Başlık Hiyerarşisi (H2/H3)
+                let h2Count = 0;
+                let h3Count = 0;
+                let hierarchyError = false;
+                if (contentElement) {
+                    const headings = contentElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    let lastLevel = 1; // Başlangıç seviyesi H1 kabul edilebilir
+                    headings.forEach(h => {
+                        const level = parseInt(h.tagName.substring(1));
+                        if (level === 2) h2Count++;
+                        if (level === 3) h3Count++;
+                        if (level > lastLevel + 1) {
+                            hierarchyError = true;
+                        }
+                        lastLevel = level;
+                    });
+                }
+
                 sendResponse({
                     success: true,
                     data: {
@@ -250,7 +301,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         metaDescLength: metaDescLength,
                         publishedDate: publishedDate,
                         modifiedDate: modifiedDate,
-                        featureImage: featureImageObj
+                        featureImage: featureImageObj,
+                        linkAnalysis: {
+                            internal: internalLinks,
+                            external: externalLinks,
+                            nofollow: nofollowLinks,
+                            dofollow: dofollowLinks
+                        },
+                        headings: {
+                            h2: h2Count,
+                            h3: h3Count,
+                            hierarchyError: hierarchyError
+                        },
+                        urlAnalysis: {
+                            length: urlLength,
+                            hasCanonical: !!canonicalUrl,
+                            isCanonicalMatch: isCanonicalMatch
+                        },
+                        social: {
+                            ogTitle: hasOgTitle,
+                            ogImage: hasOgImage,
+                            twitterCard: hasTwitterCard
+                        }
                     }
                 });
             } catch (error) {

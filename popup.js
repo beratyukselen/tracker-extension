@@ -515,9 +515,58 @@ document.getElementById('btnQuickAudit').addEventListener('click', () => {
                             <span class="text-gray-500">Yayın Tarihi:</span>
                             <span class="font-medium ${data.publishedDate !== 'Bulunamadı' ? 'text-blue-600' : ''}">${data.publishedDate}</span>
                         </div>
-                        <div class="flex justify-between">
+                        <div class="flex justify-between border-b border-gray-100 pb-1 mt-1.5">
                             <span class="text-gray-500">Güncelleme (Mod):</span>
                             <span class="font-medium ${data.modifiedDate !== 'Bulunamadı' ? 'text-blue-600' : ''}">${data.modifiedDate}</span>
+                        </div>
+
+                        <!-- URL & Canonical Analizi -->
+                        <div class="mt-2.5 bg-gray-50 p-1.5 rounded border border-gray-100">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-500">URL Uzunluğu:</span>
+                                <span class="font-medium ${data.urlAnalysis.length > 75 ? 'text-orange-500' : 'text-green-600'}">${data.urlAnalysis.length} Karakter</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Canonical Link:</span>
+                                <span class="font-medium ${data.urlAnalysis.hasCanonical ? (data.urlAnalysis.isCanonicalMatch ? 'text-green-600' : 'text-orange-500') : 'text-red-500'}">
+                                    ${data.urlAnalysis.hasCanonical ? (data.urlAnalysis.isCanonicalMatch ? '✅ Eşleşiyor' : '⚠️ Farklı') : '❌ Yok'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Link Analizi -->
+                        <div class="mt-1.5 bg-gray-50 p-1.5 rounded border border-gray-100">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-500">Linkler (İç/Dış):</span>
+                                <span class="font-medium text-gray-700">${data.linkAnalysis.internal} / ${data.linkAnalysis.external}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Dış Link Türü:</span>
+                                <span class="font-medium text-gray-700">
+                                    <span class="text-green-600" title="Dofollow">${data.linkAnalysis.dofollow} Dofollow</span> - 
+                                    <span class="text-orange-500" title="Nofollow">${data.linkAnalysis.nofollow} Nofollow</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Başlık & Sosyal Medya -->
+                        <div class="mt-1.5 flex gap-1.5">
+                            <div class="flex-1 bg-gray-50 p-1.5 rounded border border-gray-100 flex flex-col justify-center">
+                                <div class="text-gray-500 mb-1">Hiyerarşi (H2/H3)</div>
+                                <div class="flex items-center justify-between">
+                                    <span class="font-medium text-gray-700">${data.headings.h2} / ${data.headings.h3}</span>
+                                    <span class="text-[10px] ${data.headings.hierarchyError ? 'text-orange-500' : 'text-green-600'}">${data.headings.hierarchyError ? '⚠️ Hata' : '✅ Uygun'}</span>
+                                </div>
+                            </div>
+                            <div class="flex-1 bg-gray-50 p-1.5 rounded border border-gray-100 flex flex-col justify-center">
+                                <div class="text-gray-500 mb-1">Sosyal Etiketler</div>
+                                <div class="flex justify-between text-[11px] font-medium px-1">
+                                    <span class="${data.social.ogTitle ? 'text-green-600' : 'text-red-500'}" title="Open Graph Title">OG:T</span>
+                                    <span class="${data.social.ogImage ? 'text-green-600' : 'text-red-500'}" title="Open Graph Image">OG:I</span>
+                                    <span class="${data.social.twitterCard ? 'text-green-600' : 'text-red-500'}" title="Twitter Card">TW</span>
+                                </div>
+                            </div>
+                        </div>
                     `;
 
                     // İndirme butonunu dinle

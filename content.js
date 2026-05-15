@@ -1,4 +1,5 @@
-const MOUSE_MOVE_DELAY = 500;
+const MOUSE_MOVE_DELAY = 200;
+const SCROLL_DELAY = 400;
 
 let behaviorData = [];
 let lastMouseMoveTime = 0;
@@ -59,7 +60,7 @@ document.addEventListener('scroll', (e) => {
     if (!isTrackingAllowed) return;
 
     const now = Date.now();
-    if (now - lastScrollTime > 250) {
+    if (now - lastScrollTime > SCROLL_DELAY) {
         behaviorData.push({
             type: "mouse_scroll",
             scrollY: Math.round(window.scrollY),
@@ -112,7 +113,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             try {
                 const title = document.title || '';
                 const host = window.location.hostname;
-                
+
                 // Özel site tanımlamaları (H1 ve İçerik Div'i)
                 const siteSelectors = {
                     'dijitalsurmanset.com': { content: 'article.news-post', h1: 'h1.title-gallery' },
@@ -137,13 +138,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         break;
                     }
                 }
-                
+
                 // Schema.org LD-JSON içinden veri çıkarma hazırlığı
                 let publishedDate = 'Bulunamadı';
                 let modifiedDate = 'Bulunamadı';
                 let schemaH1 = null;
                 let schemaBody = null;
-                
+
                 const scriptTags = document.querySelectorAll('script[type="application/ld+json"]');
                 for (let script of scriptTags) {
                     try {
@@ -155,7 +156,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             if (obj.name && !schemaH1) schemaH1 = obj.name;
                             if (obj.articleBody && !schemaBody) schemaBody = obj.articleBody;
                         };
-                        
+
                         if (Array.isArray(data)) {
                             data.forEach(processSchema);
                         } else if (data['@graph'] && Array.isArray(data['@graph'])) {
@@ -171,7 +172,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 const h1Element = document.querySelector(h1Selector) || document.querySelector('h1');
                 let h1 = h1Element ? h1Element.innerText.trim() : 'Yok';
                 if (h1 === 'Yok' && schemaH1) h1 = schemaH1 + ' (Schema)';
-                
+
                 // Kelime sayısı (Özel kapsayıcı veya article, yoksa schema, yoksa body)
                 let contentElement = document.querySelector(contentSelector);
                 let textContent = contentElement ? contentElement.innerText : '';
@@ -184,15 +185,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 const charCount = textContent.length;
                 const h1WordCount = h1.split(/\s+/).filter(word => word.length > 0 && word !== '(Schema)').length;
                 const h1CharCount = h1.replace(' (Schema)', '').length;
-                
+
                 // Meta Description
                 const metaDescTag = document.querySelector('meta[name="description"]');
                 const metaDescLength = metaDescTag ? metaDescTag.getAttribute('content').length : 0;
-                
+
                 // Öne Çıkan Görsel (Feature Image)
                 let imgElement = contentElement ? contentElement.querySelector('img') : null;
                 let imgUrl = imgElement ? imgElement.src : null;
-                
+
                 if (!imgUrl) {
                     const ogImage = document.querySelector('meta[property="og:image"]');
                     if (ogImage) imgUrl = ogImage.getAttribute('content');
@@ -212,7 +213,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         if (extMatch) {
                             featureImageObj.format = extMatch[1].toUpperCase();
                         }
-                        
+
                         // Dosya boyutunu almak için HEAD isteği yap
                         const response = await fetch(imgUrl, { method: 'HEAD', cache: 'force-cache' });
                         if (response.ok) {
@@ -220,7 +221,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             if (contentLength) {
                                 featureImageObj.sizeKb = Math.round(parseInt(contentLength) / 1024);
                             }
-                            
+
                             const contentType = response.headers.get('content-type');
                             if (contentType && contentType.startsWith('image/')) {
                                 featureImageObj.format = contentType.split('/')[1].toUpperCase();
@@ -230,7 +231,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         // CORS veya başka bir sebeple fetch başarısız olursa ignore
                     }
                 }
-                
+
                 // Eğer LD-JSON'da yoksa meta taglere bak
                 if (publishedDate === 'Bulunamadı') {
                     const pubMeta = document.querySelector('meta[property="article:published_time"]');

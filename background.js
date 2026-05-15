@@ -1,6 +1,6 @@
 // background.js
 
-const SERVER_URL = "https://backoffice.ekonomikosesi.com/api/telemetry/sync"; 
+const SERVER_URL = "https://backoffice.ekonomikosesi.com/api/telemetry/sync";
 
 let activeTabInfo = null;
 
@@ -10,9 +10,9 @@ function extractSearchTerm(urlString) {
     const url = new URL(urlString);
     const hostname = url.hostname;
 
-    if (hostname.includes("google.com") && url.pathname.startsWith("/search")) return url.searchParams.get("q"); 
-    else if (hostname.includes("youtube.com") && url.pathname.startsWith("/results")) return url.searchParams.get("search_query"); 
-    else if ((hostname.includes("x.com") || hostname.includes("twitter.com")) && url.pathname.startsWith("/search")) return url.searchParams.get("q"); 
+    if (hostname.includes("google.com") && url.pathname.startsWith("/search")) return url.searchParams.get("q");
+    else if (hostname.includes("youtube.com") && url.pathname.startsWith("/results")) return url.searchParams.get("search_query");
+    else if ((hostname.includes("x.com") || hostname.includes("twitter.com")) && url.pathname.startsWith("/search")) return url.searchParams.get("q");
     else if (hostname.includes("instagram.com") && url.pathname.startsWith("/explore/tags/")) return url.pathname.split('/')[3];
     else if (hostname.includes("linkedin.com") && url.pathname.startsWith("/search/results/")) return url.searchParams.get("keywords");
     else if (hostname.includes("tiktok.com") && url.pathname.startsWith("/search")) return url.searchParams.get("q");
@@ -33,14 +33,14 @@ async function saveActivity() {
   if (durationInSeconds > 0) {
     const activityRecord = {
       url: activeTabInfo.url,
-      title: activeTabInfo.title,
-      search_term: activeTabInfo.searchTerm || "",
+      title: "", // NoSQL'e geçince eklenecek
+      search_term: "",
       duration: durationInSeconds,
       behavior_data: activeTabInfo.behavior_data || []
     };
 
     console.log(`[STORAGE] Saving activity: ${activityRecord.url} | ${activityRecord.duration}s`);
-    
+
     chrome.storage.local.get({ activity_list: [] }, (result) => {
       const updatedList = result.activity_list;
       updatedList.push(activityRecord);
@@ -58,12 +58,12 @@ async function startTracking(tab) {
 
   activeTabInfo = {
     url: tab.url,
-    title: tab.title,
-    searchTerm: extractSearchTerm(tab.url),
+    title: "", // tab.title yerine boş gönderiyoruz
+    searchTerm: "",
     startTime: Date.now(),
     behavior_data: []
   };
-  
+
   console.log(`[TRACKING] Started for: ${tab.title}`);
 }
 
@@ -118,7 +118,7 @@ async function syncDataToServer() {
     const list = result.activity_list || [];
     const token = result.api_token;
     const activeProfileId = result.selected_profile_id || 1;
-    
+
     if (list.length === 0) return;
 
     if (!token) {
@@ -128,14 +128,14 @@ async function syncDataToServer() {
 
     const formattedList = list.map(item => ({
       url: item.url ? item.url.substring(0, 1000) : "",
-      title: item.title ? item.title.substring(0, 250) : "",
-      search_term: item.search_term ? item.search_term.substring(0, 250) : "",
+      title: "",
+      search_term: "",
       duration: item.duration,
       behavior_data: item.behavior_data || []
     }));
 
     console.log(`[SYNC] Dispatching ${formattedList.length} records to server.`);
-    const CHUNK_SIZE = 50;
+    const CHUNK_SIZE = 15; // Olası memory sorunlarını ve max_allowed_packet aşımını önlemek için 50'den 15'e düşürüldü
     let syncSuccessCount = 0;
 
     for (let i = 0; i < formattedList.length; i += CHUNK_SIZE) {
@@ -148,7 +148,7 @@ async function syncDataToServer() {
       try {
         const response = await fetch(SERVER_URL, {
           method: "POST",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Authorization": `Bearer ${token}`
@@ -159,7 +159,7 @@ async function syncDataToServer() {
         if (response.ok || response.type === 'opaque') {
           syncSuccessCount += chunk.length;
         } else {
-          const errorDetails = await response.json(); 
+          const errorDetails = await response.json();
           console.error("[SYNC] Server rejected payload chunk:", errorDetails);
           break; // Stop syncing further chunks on server error
         }

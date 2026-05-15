@@ -482,10 +482,12 @@ document.getElementById('btnQuickAudit').addEventListener('click', () => {
                     const descColor = (data.metaDescLength > 50 && data.metaDescLength < 160) ? 'text-green-600' : (data.metaDescLength > 0 ? 'text-orange-500' : 'text-red-500');
                     
                     content.innerHTML = `
-                        <div class="flex flex-col border-b border-gray-100 pb-1.5 mb-1.5">
-                            <span class="text-gray-500 mb-0.5">Başlık:</span>
-                            <span class="font-medium text-left line-clamp-2 ${h1Color}" title="${data.h1}">${data.h1}</span>
-                            <span class="text-[9px] text-gray-400 mt-0.5 text-right">${data.h1WordCount} kelime, ${data.h1CharCount} harf</span>
+                        <div class="flex flex-col border-b border-gray-100 pb-1.5 mb-1.5 overflow-hidden">
+                            <div class="flex justify-between items-end">
+                                <span class="text-gray-500 mb-0.5">Başlık:</span>
+                                <span class="text-[9px] text-gray-400 mb-0.5">${data.h1WordCount} kelime, ${data.h1CharCount} harf</span>
+                            </div>
+                            <span class="font-medium text-left truncate ${h1Color}" title="${data.h1}">${data.h1}</span>
                         </div>
                         <div class="flex justify-between border-b border-gray-100 pb-1">
                             <span class="text-gray-500">İçerik Uzunluğu:</span>
@@ -496,7 +498,12 @@ document.getElementById('btnQuickAudit').addEventListener('click', () => {
                             <span class="font-medium ${descColor}">${data.metaDescLength > 0 ? data.metaDescLength + ' karakter' : 'Yok'}</span>
                         </div>
                         <div class="flex justify-between border-b border-gray-100 pb-1 mt-1.5">
-                            <span class="text-gray-500">Öne Çıkan Görsel:</span>
+                            <div class="flex flex-col">
+                                ${data.featureImage && data.featureImage.url !== 'Yok' 
+                                    ? `<a href="${data.featureImage.url}" target="_blank" class="text-gray-500 hover:text-blue-600 hover:underline cursor-pointer transition-colors" title="Görseli Yeni Sekmede Aç">Öne Çıkan Görsel:</a>
+                                       <span id="download-feature-image" data-url="${data.featureImage.url}" class="text-[10px] text-gray-400 hover:text-blue-500 cursor-pointer mt-0.5 w-max">İndir</span>` 
+                                    : `<span class="text-gray-500">Öne Çıkan Görsel:</span>`}
+                            </div>
                             <span class="font-medium text-right">
                                 ${data.featureImage && data.featureImage.url !== 'Yok' 
                                     ? `<span class="text-blue-600">${data.featureImage.width}x${data.featureImage.height}</span> px<br/>
@@ -511,8 +518,16 @@ document.getElementById('btnQuickAudit').addEventListener('click', () => {
                         <div class="flex justify-between">
                             <span class="text-gray-500">Güncelleme (Mod):</span>
                             <span class="font-medium ${data.modifiedDate !== 'Bulunamadı' ? 'text-blue-600' : ''}">${data.modifiedDate}</span>
-                        </div>
                     `;
+
+                    // İndirme butonunu dinle
+                    const downloadBtn = document.getElementById('download-feature-image');
+                    if (downloadBtn) {
+                        downloadBtn.addEventListener('click', () => {
+                            const url = downloadBtn.getAttribute('data-url');
+                            chrome.downloads.download({ url: url });
+                        });
+                    }
                 } else {
                     content.innerHTML = `<div class="text-red-500">Veri okunamadı.</div>`;
                 }

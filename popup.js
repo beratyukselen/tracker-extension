@@ -478,28 +478,33 @@ document.getElementById('btnQuickAudit').addEventListener('click', () => {
                     const data = response.data;
                     
                     // Basit durum değerlendirmeleri
-                    const titleColor = (data.titleLength > 10 && data.titleLength < 70) ? 'text-green-600' : 'text-orange-500';
                     const h1Color = data.h1 !== 'Yok' ? 'text-green-600' : 'text-red-500';
                     const descColor = (data.metaDescLength > 50 && data.metaDescLength < 160) ? 'text-green-600' : (data.metaDescLength > 0 ? 'text-orange-500' : 'text-red-500');
                     
                     content.innerHTML = `
-                        <div class="flex justify-between border-b border-gray-100 pb-1">
-                            <span class="text-gray-500">Title:</span>
-                            <span class="font-medium text-right max-w-[200px] truncate" title="${data.title}">${data.title} <span class="${titleColor}">(${data.titleLength} krkt)</span></span>
+                        <div class="flex flex-col border-b border-gray-100 pb-1.5 mb-1.5">
+                            <span class="text-gray-500 mb-0.5">Başlık:</span>
+                            <span class="font-medium text-left line-clamp-2 ${h1Color}" title="${data.h1}">${data.h1}</span>
+                            <span class="text-[9px] text-gray-400 mt-0.5 text-right">${data.h1WordCount} kelime, ${data.h1CharCount} harf</span>
                         </div>
                         <div class="flex justify-between border-b border-gray-100 pb-1">
-                            <span class="text-gray-500">H1 Tag:</span>
-                            <span class="font-medium text-right max-w-[200px] truncate ${h1Color}" title="${data.h1}">${data.h1}</span>
+                            <span class="text-gray-500">İçerik Uzunluğu:</span>
+                            <span class="font-medium text-right">${data.wordCount} kelime <br/><span class="text-[9px] text-gray-400">${data.charCount} harf</span></span>
                         </div>
-                        <div class="flex justify-between border-b border-gray-100 pb-1">
-                            <span class="text-gray-500">Kelime Sayısı:</span>
-                            <span class="font-medium">${data.wordCount} kelime</span>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                        <div class="flex justify-between border-b border-gray-100 pb-1 mt-1.5">
                             <span class="text-gray-500">Meta Desc:</span>
                             <span class="font-medium ${descColor}">${data.metaDescLength > 0 ? data.metaDescLength + ' karakter' : 'Yok'}</span>
                         </div>
-                        <div class="flex justify-between border-b border-gray-100 pb-1">
+                        <div class="flex justify-between border-b border-gray-100 pb-1 mt-1.5">
+                            <span class="text-gray-500">Öne Çıkan Görsel:</span>
+                            <span class="font-medium text-right">
+                                ${data.featureImage && data.featureImage.url !== 'Yok' 
+                                    ? `<span class="text-blue-600">${data.featureImage.width}x${data.featureImage.height}</span> px<br/>
+                                       <span class="text-[9px] text-gray-400">${data.featureImage.format} • ${data.featureImage.sizeKb > 0 ? data.featureImage.sizeKb + ' KB' : 'Bilinmiyor'}</span>`
+                                    : '<span class="text-gray-400">Yok</span>'}
+                            </span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-100 pb-1 mt-1.5">
                             <span class="text-gray-500">Yayın Tarihi:</span>
                             <span class="font-medium ${data.publishedDate !== 'Bulunamadı' ? 'text-blue-600' : ''}">${data.publishedDate}</span>
                         </div>

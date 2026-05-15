@@ -106,88 +106,158 @@ window.addEventListener('beforeunload', sendDataToBackground);
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "QUICK_AUDIT") {
-        try {
-            const title = document.title || '';
-            const host = window.location.hostname;
-            
-            // Özel site tanımlamaları (H1 ve İçerik Div'i)
-            const siteSelectors = {
-                'dijitalsurmanset.com': { content: 'article.news-post', h1: 'h1.title-gallery' },
-                'ekonomikosesi.com': { content: 'article.site-content-block.single', h1: 'h1.post-headline' },
-                'ekonomininsesi.com': { content: 'div.c-article-content__container', h1: 'h1.c-article-header__title' },
-                'mansetetkisi': { content: 'div.article__content-wrap.site-content-block', h1: 'h1.article__title' },
-                'muvezzi.com': { content: 'article.site-content-block', h1: 'h1.news-title' },
-                'newsmanset.com': { content: 'article.site-content-block', h1: '#main h1' },
-                'onlinemalumat': { content: 'div.full-content.content-main-block div.article-single__content.site-content-block', h1: 'main.article-single__main.article-single__main--featured h1' },
-                'sansasyonelgazete.com': { content: 'article .post-content.panel', h1: 'article .post-header h1' },
-                'thesansasyonel.com': { content: 'section.content-rail .content-column', h1: 'header.content-head.site-container.article-head h1.content-title' },
-                'wallstreetturkish.com': { content: 'div.c-article-content__container', h1: 'h1.c-article-header__title' }
-            };
+        (async () => {
+            try {
+                const title = document.title || '';
+                const host = window.location.hostname;
+                
+                // Özel site tanımlamaları (H1 ve İçerik Div'i)
+                const siteSelectors = {
+                    'dijitalsurmanset.com': { content: 'article.news-post', h1: 'h1.title-gallery' },
+                    'ekonomikosesi.com': { content: 'article.site-content-block.single', h1: 'h1.post-headline' },
+                    'ekonomininsesi.com': { content: 'div.c-article-content__container', h1: 'h1.c-article-header__title' },
+                    'mansetetkisi': { content: 'div.article__content-wrap.site-content-block', h1: 'h1.article__title' },
+                    'muvezzi.com': { content: 'article.site-content-block', h1: 'h1.news-title' },
+                    'newsmanset.com': { content: 'article.site-content-block', h1: '#main h1' },
+                    'onlinemalumat': { content: 'div.full-content.content-main-block div.article-single__content.site-content-block', h1: 'main.article-single__main.article-single__main--featured h1' },
+                    'sansasyonelgazete.com': { content: 'article .post-content.panel', h1: 'article .post-header h1' },
+                    'thesansasyonel.com': { content: 'section.content-rail .content-column', h1: 'header.content-head.site-container.article-head h1.content-title' },
+                    'wallstreetturkish.com': { content: 'div.c-article-content__container', h1: 'h1.c-article-header__title' }
+                };
 
-            let h1Selector = 'h1';
-            let contentSelector = 'body';
+                let h1Selector = 'article h1, h1';
+                let contentSelector = 'article';
 
-            for (let key in siteSelectors) {
-                if (host.includes(key)) {
-                    h1Selector = siteSelectors[key].h1;
-                    contentSelector = siteSelectors[key].content;
-                    break;
+                for (let key in siteSelectors) {
+                    if (host.includes(key)) {
+                        h1Selector = siteSelectors[key].h1;
+                        contentSelector = siteSelectors[key].content;
+                        break;
+                    }
                 }
-            }
-
-            const h1Element = document.querySelector(h1Selector) || document.querySelector('h1');
-            const h1 = h1Element ? h1Element.innerText.trim() : 'Yok';
-            
-            // Kelime sayısı (Özel kapsayıcı yoksa body'e fallback)
-            const contentElement = document.querySelector(contentSelector);
-            const textContent = contentElement ? contentElement.innerText : (document.body.innerText || '');
-            const wordCount = textContent.split(/\s+/).filter(word => word.length > 0).length;
-            
-            // Meta Description
-            const metaDescTag = document.querySelector('meta[name="description"]');
-            const metaDescLength = metaDescTag ? metaDescTag.getAttribute('content').length : 0;
-            
-            // Yayınlanma / Güncellenme Tarihleri (Schema.org veya Meta tag'ler)
-            let publishedDate = 'Bulunamadı';
-            let modifiedDate = 'Bulunamadı';
-            
-            // Schema.org LD-JSON içinden arama
-            const scriptTags = document.querySelectorAll('script[type="application/ld+json"]');
-            for (let script of scriptTags) {
-                try {
-                    const data = JSON.parse(script.innerText);
-                    if (data.datePublished) publishedDate = new Date(data.datePublished).toLocaleString('tr-TR');
-                    if (data.dateModified) modifiedDate = new Date(data.dateModified).toLocaleString('tr-TR');
-                } catch (e) {
-                    // JSON parse error, ignore
+                
+                // Schema.org LD-JSON içinden veri çıkarma hazırlığı
+                let publishedDate = 'Bulunamadı';
+                let modifiedDate = 'Bulunamadı';
+                let schemaH1 = null;
+                let schemaBody = null;
+                
+                const scriptTags = document.querySelectorAll('script[type="application/ld+json"]');
+                for (let script of scriptTags) {
+                    try {
+                        const data = JSON.parse(script.innerText);
+                        const processSchema = (obj) => {
+                            if (obj.datePublished && publishedDate === 'Bulunamadı') publishedDate = new Date(obj.datePublished).toLocaleString('tr-TR');
+                            if (obj.dateModified && modifiedDate === 'Bulunamadı') modifiedDate = new Date(obj.dateModified).toLocaleString('tr-TR');
+                            if (obj.headline && !schemaH1) schemaH1 = obj.headline;
+                            if (obj.name && !schemaH1) schemaH1 = obj.name;
+                            if (obj.articleBody && !schemaBody) schemaBody = obj.articleBody;
+                        };
+                        
+                        if (Array.isArray(data)) {
+                            data.forEach(processSchema);
+                        } else if (data['@graph'] && Array.isArray(data['@graph'])) {
+                            data['@graph'].forEach(processSchema);
+                        } else {
+                            processSchema(data);
+                        }
+                    } catch (e) {
+                        // JSON parse hatası
+                    }
                 }
-            }
-            
-            // Eğer LD-JSON'da yoksa meta taglere bak
-            if (publishedDate === 'Bulunamadı') {
-                const pubMeta = document.querySelector('meta[property="article:published_time"]');
-                if (pubMeta) publishedDate = new Date(pubMeta.getAttribute('content')).toLocaleString('tr-TR');
-            }
-            if (modifiedDate === 'Bulunamadı') {
-                const modMeta = document.querySelector('meta[property="article:modified_time"]');
-                if (modMeta) modifiedDate = new Date(modMeta.getAttribute('content')).toLocaleString('tr-TR');
-            }
 
-            sendResponse({
-                success: true,
-                data: {
-                    title: title,
-                    titleLength: title.length,
-                    h1: h1,
-                    wordCount: wordCount,
-                    metaDescLength: metaDescLength,
-                    publishedDate: publishedDate,
-                    modifiedDate: modifiedDate
+                const h1Element = document.querySelector(h1Selector) || document.querySelector('h1');
+                let h1 = h1Element ? h1Element.innerText.trim() : 'Yok';
+                if (h1 === 'Yok' && schemaH1) h1 = schemaH1 + ' (Schema)';
+                
+                // Kelime sayısı (Özel kapsayıcı veya article, yoksa schema, yoksa body)
+                let contentElement = document.querySelector(contentSelector);
+                let textContent = contentElement ? contentElement.innerText : '';
+                if (!textContent && schemaBody) {
+                    textContent = schemaBody;
+                } else if (!textContent) {
+                    textContent = document.body.innerText || '';
                 }
-            });
-        } catch (error) {
-            sendResponse({ success: false, error: error.message });
-        }
+                const wordCount = textContent.split(/\s+/).filter(word => word.length > 0).length;
+                const charCount = textContent.length;
+                const h1WordCount = h1.split(/\s+/).filter(word => word.length > 0 && word !== '(Schema)').length;
+                const h1CharCount = h1.replace(' (Schema)', '').length;
+                
+                // Meta Description
+                const metaDescTag = document.querySelector('meta[name="description"]');
+                const metaDescLength = metaDescTag ? metaDescTag.getAttribute('content').length : 0;
+                
+                // Öne Çıkan Görsel (Feature Image)
+                let imgElement = contentElement ? contentElement.querySelector('img') : null;
+                let imgUrl = imgElement ? imgElement.src : null;
+                
+                if (!imgUrl) {
+                    const ogImage = document.querySelector('meta[property="og:image"]');
+                    if (ogImage) imgUrl = ogImage.getAttribute('content');
+                }
+
+                let featureImageObj = {
+                    url: imgUrl || 'Yok',
+                    width: imgElement ? imgElement.naturalWidth : 0,
+                    height: imgElement ? imgElement.naturalHeight : 0,
+                    format: 'Bilinmiyor',
+                    sizeKb: 0
+                };
+
+                if (imgUrl && imgUrl !== 'Yok') {
+                    try {
+                        const extMatch = imgUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i);
+                        if (extMatch) {
+                            featureImageObj.format = extMatch[1].toUpperCase();
+                        }
+                        
+                        // Dosya boyutunu almak için HEAD isteği yap
+                        const response = await fetch(imgUrl, { method: 'HEAD', cache: 'force-cache' });
+                        if (response.ok) {
+                            const contentLength = response.headers.get('content-length');
+                            if (contentLength) {
+                                featureImageObj.sizeKb = Math.round(parseInt(contentLength) / 1024);
+                            }
+                            
+                            const contentType = response.headers.get('content-type');
+                            if (contentType && contentType.startsWith('image/')) {
+                                featureImageObj.format = contentType.split('/')[1].toUpperCase();
+                            }
+                        }
+                    } catch (e) {
+                        // CORS veya başka bir sebeple fetch başarısız olursa ignore
+                    }
+                }
+                
+                // Eğer LD-JSON'da yoksa meta taglere bak
+                if (publishedDate === 'Bulunamadı') {
+                    const pubMeta = document.querySelector('meta[property="article:published_time"]');
+                    if (pubMeta) publishedDate = new Date(pubMeta.getAttribute('content')).toLocaleString('tr-TR');
+                }
+                if (modifiedDate === 'Bulunamadı') {
+                    const modMeta = document.querySelector('meta[property="article:modified_time"]');
+                    if (modMeta) modifiedDate = new Date(modMeta.getAttribute('content')).toLocaleString('tr-TR');
+                }
+
+                sendResponse({
+                    success: true,
+                    data: {
+                        h1: h1,
+                        h1WordCount: h1WordCount,
+                        h1CharCount: h1CharCount,
+                        wordCount: wordCount,
+                        charCount: charCount,
+                        metaDescLength: metaDescLength,
+                        publishedDate: publishedDate,
+                        modifiedDate: modifiedDate,
+                        featureImage: featureImageObj
+                    }
+                });
+            } catch (error) {
+                sendResponse({ success: false, error: error.message });
+            }
+        })();
+        return true;
     }
     return true;
 });
